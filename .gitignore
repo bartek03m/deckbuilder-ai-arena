@@ -1,0 +1,124 @@
+# =====================================================================
+# Salon Automatów (deckbuilder-ai-arena)
+# Python server (gRPC, AI, RL, LLM) + Godot 4 C# client
+# =====================================================================
+
+# ---------------------------------------------------------------------
+# Python
+# ---------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Packaging / PyInstaller (F07)
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# Tests and tools
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+.mypy_cache/
+.ruff_cache/
+.tox/
+.ipynb_checkpoints/
+
+# Generated gRPC code for Python (generate from /proto instead of committing)
+# Remove these lines if the team decides to commit generated code.
+*_pb2.py
+*_pb2.pyi
+*_pb2_grpc.py
+
+# ---------------------------------------------------------------------
+# Godot 4
+# ---------------------------------------------------------------------
+# Godot cache and imported resources (regenerated on project open)
+.godot/
+# NOTE: *.import files next to assets MUST be committed in Godot 4
+
+# Exports / builds of the client
+client/builds/
+client/export/
+*.pck
+*.exe
+*.dmg
+
+# Export presets can contain local paths and signing passwords
+export_credentials.cfg
+
+# ---------------------------------------------------------------------
+# C# / .NET
+# ---------------------------------------------------------------------
+bin/
+obj/
+*.user
+*.suo
+*.userprefs
+.vs/
+*.DotSettings.user
+mono_crash.*.json
+
+# ---------------------------------------------------------------------
+# AI / RL / LLM (F30, F34, F35, F38, F39)
+# ---------------------------------------------------------------------
+# Local language model weights (too big for git)
+*.gguf
+*.ggml
+*.safetensors
+*.onnx
+models/
+
+# RL training outputs and checkpoints
+runs/
+checkpoints/
+tensorboard/
+wandb/
+*.zip.ckpt
+*.pt
+*.pth
+
+# Arena / balance simulator results (regenerate locally)
+results/
+
+# ---------------------------------------------------------------------
+# Runtime files: logs, saves (F23, F24)
+# ---------------------------------------------------------------------
+*.log
+logs/
+saves/
+
+# ---------------------------------------------------------------------
+# Secrets and local config
+# ---------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+
+# ---------------------------------------------------------------------
+# Editors / IDE
+# ---------------------------------------------------------------------
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+*.swp
+*~
+
+# ---------------------------------------------------------------------
+# OS
+# ---------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
