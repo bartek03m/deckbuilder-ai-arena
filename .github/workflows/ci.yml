@@ -1,0 +1,87 @@
+name: CI
+
+# When to run: on every PR to main, after every merge to main,
+# and manually from the Actions tab (workflow_dispatch).
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# A new push to the same PR cancels the previous, unfinished run.
+# Runs on main are never cancelled, so every merge gets its own result.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# The workflow can only read the repo, not change it.
+permissions:
+  contents: read
+
+jobs:
+  # Job names ("name:") are the required check names in the main ruleset.
+  # Do not rename them after protection is enabled.
+  pytest:
+    name: pytest
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: server/requirements*.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest hypothesis
+
+      # Tests marked @pytest.mark.llm need a local Ollama, so they are skipped in CI.
+      - name: Run tests
+        run: pytest -v -m "not llm"
+
+  dotnet-build:
+    name: dotnet build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "8.0.x"
+
+      # Godot keeps the .sln and .csproj in the same folder, so a plain
+      # "dotnet build" fails with MSB1011. We find the .sln and build it explicitly.
+      # Until the Godot project exists (S1-12), the job passes with a warning.
+      - name: Find solution
+        id: sln
+        run: |
+          SLN=$(find . -maxdepth 1 -name '*.sln' | head -n 1)
+          if [ -z "$SLN" ]; then
+            echo "::warning::No .sln file in client/ - skipping build (Godot project comes in S1-12)"
+          else
+            echo "Building: $SLN"
+          fi
+          echo "file=$SLN" >> "$GITHUB_OUTPUT"
+
+      - name: Restore
+        if: steps.sln.outputs.file != ''
+        env:
+          SLN: ${{ steps.sln.outputs.file }}
+        run: dotnet restore "$SLN"
+
+      - name: Build
+        if: steps.sln.outputs.file != ''
+        env:
+          SLN: ${{ steps.sln.outputs.file }}
+        run: dotnet build "$SLN" --no-restore --configuration Debug
