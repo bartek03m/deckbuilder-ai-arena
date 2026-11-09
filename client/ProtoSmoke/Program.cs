@@ -8,9 +8,10 @@ var client = new Game.GameClient(channel);
 var run = await client.StartRunAsync(new StartRunRequest { Seed = 42 });
 Console.WriteLine($"HP gracza: {run.Battle.Player.Hp}");
 var first = run.Battle.Hand[0];
-Console.WriteLine($"Pierwsza karta: {first.Name}, wypustka {first.Tabs[0].Color}");
+var tab = first.Tabs.Count > 0 ? first.Tabs[0].Color.ToString() : "none";
+Console.WriteLine($"Pierwsza karta: {first.Name}, wypustka {tab}");
 
-var result = await client.PlayCardAsync(new PlayCardRequest { SessionId = run.SessionId, CardUid = 0 });
+var result = await client.PlayCardAsync(new PlayCardRequest { SessionId = run.SessionId, CardUid = first.Uid });
 foreach (var e in result.Events)
 {
     switch (e.KindCase)
