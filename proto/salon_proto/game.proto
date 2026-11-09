@@ -4,7 +4,7 @@ package salon;
 option csharp_namespace = "Salon.Proto";
 
 enum Color {
-    COLOR_UNSPECTED = 0;
+    COLOR_UNSPECIFIED = 0;
     COLOR_RED = 1;
     COLOR_GREEN = 2;
     COLOR_BLUE = 3;

@@ -60,6 +60,11 @@ jobs:
         with:
           dotnet-version: "8.0.x"
 
+      #Console contract check(S1-06). Building it also generates C# code
+      #from proto/salon_proto/game.proto, so broken .proto fails here
+      - name: Build Protosmoke
+        run: dotnet build ProtoSmoke/ProtoSmoke.csproj --configuration Debug
+
       # Godot keeps the .sln and .csproj in the same folder, so a plain
       # "dotnet build" fails with MSB1011. We find the .sln and build it explicitly.
       # Until the Godot project exists (S1-12), the job passes with a warning.
