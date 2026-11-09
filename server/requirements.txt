@@ -3,3 +3,4 @@ hypothesis
 
 grpcio # gRPC library
 grpcio-tools # for generating code from .proto file
+protobuf
