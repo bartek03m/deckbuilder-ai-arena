@@ -1,0 +1,119 @@
+syntax = "proto3";
+
+package salon;
+option csharp_namespace = "Salon.Proto";
+
+enum Color {
+    COLOR_UNSPECIFIED = 0;
+    COLOR_RED = 1;
+    COLOR_GREEN = 2;
+    COLOR_BLUE = 3;
+    COLOR_PURPLE = 4;
+    COLOR_RAINBOW = 5;
+}
+
+message Tab {
+    Color color = 1;
+    int32 value = 2;
+}
+
+message Card {
+    int32 uid = 1;
+    string def_id = 2;
+    string name = 3;
+    repeated Color colors = 4;
+    int32 cost = 5;
+    int32 damage = 6;
+    int32 shield = 7;
+    int32 draw = 8;
+    repeated Tab tabs = 9;
+}
+
+message CardBack {
+    repeated Color colors = 1;
+}
+
+message Side {
+    int32 hp = 1;
+    int32 max_hp = 2;
+    int32 shield = 3;
+    int32 energy = 4;
+    int32 deck_count = 5;
+    int32 discard_count = 6;
+}
+
+message BattleState {
+    Side player = 1;
+    Side enemy = 2;
+    repeated Card hand = 3;
+    repeated Card row = 4;
+    repeated CardBack enemy_hand = 5;
+    int32 round = 6;
+}
+
+message CardPlayed {
+    bool by_player = 1;
+    Card card = 2;
+}
+
+message TabActivated {
+    int32 card_uid = 1;
+    Tab tab = 2;
+}
+
+message Damage {
+    bool to_player = 1;
+    int32 amount = 2;
+    int32 absorbed = 3;
+}
+
+message ShieldChanged {
+    bool player = 1;
+    int32 value =2;
+}
+
+message CardsDrawn {
+    bool player = 1;
+    int32 count = 2;
+}
+
+message Event{
+    oneof kind {
+        CardPlayed card_played = 1;
+        TabActivated tab_activated = 2;
+        Damage damage = 3;
+        ShieldChanged shield_changed = 4;
+        CardsDrawn cards_drawn = 5;
+    }
+}
+
+message StartRunRequest{
+    int64 seed = 1;
+}
+
+message RunState {
+    string session_id = 1;
+    BattleState battle = 2;
+}
+
+message PlayCardRequest {
+    string session_id = 1;
+    int32 card_uid = 2;
+    bool connect = 3;
+    Color tab_color = 4;
+}
+
+message EndTurnRequest {
+    string session_id = 1;
+}
+
+message TurnResult {
+    repeated Event events = 1;
+    BattleState state = 2;
+}
+
+service Game{
+    rpc StartRun(StartRunRequest) returns (RunState);
+    rpc PlayCard(PlayCardRequest) returns (TurnResult);
+    rpc EndTurn (EndTurnRequest) returns (TurnResult);
+}
