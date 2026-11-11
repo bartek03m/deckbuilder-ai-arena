@@ -1,0 +1,14 @@
+[gd_scene format=3 uid="uid://cgnkpdyvua7ub"]
+
+[ext_resource type="Script" uid="uid://cci6ukdga67jt" path="res://Card.cs" id="1_kikvd"]
+
+[node name="Card" type="ColorRect" unique_id=1797523952]
+anchors_preset = -1
+anchor_right = 0.13000001
+anchor_bottom = 0.34
+offset_right = 0.23999023
+offset_bottom = -0.32000732
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.46076572, 0.17684379, 0.060623154, 1)
+script = ExtResource("1_kikvd")
