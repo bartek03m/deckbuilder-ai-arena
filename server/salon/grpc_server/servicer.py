@@ -18,18 +18,20 @@ class Game(rpc.GameServicer):
         self.round_no = 1
 
     def _state(self):
-         return sample_state.build_state(self.hand, self.row, self.energy, self.round_no)
+        return sample_state.build_state(self.hand, self.row, self.energy, self.round_no)
 
     def _check_session(self, request, context):
-         if request.session_id is not self.session_id:
-              context.abort(grpc.StatusCode.NOT_FOUND, "session id does not match")
+        if request.session_id != self.session_id:
+            context.abort(grpc.StatusCode.NOT_FOUND, "session id does not match")
 
     def StartRun(self, request, context):
-            self._reset()
-            return pb.RunState(session_id=self.session_id, battle=self._state())
+        self._reset()
+        return pb.RunState(session_id=self.session_id, battle=self._state())
     
     def PlayCard(self, request, context):
         #validation
+        self._check_session(request, context)
+
         if request.card_uid not in self.hand:
             context.abort(grpc.StatusCode.INVALID_ARGUMENT, "no such card in hand")
         
@@ -53,6 +55,3 @@ class Game(rpc.GameServicer):
         self.energy = 3
         self.round_no += 1
         return pb.TurnResult(events=[event], state=self._state())
-
-
-        
