@@ -143,6 +143,7 @@ def test_joker_with_rainbow_ok():
 
 @pytest.mark.parametrize("entry", [
     {"card": "nieznana"},
+    {"card": ["cios"]},
     {"card": "cios", "count": 0},
     {"card": "cios", "ilosc": 2},
     {"card": "cios", "tabs": [{"color": "red", "value": 1}, {"color": "green", "value": 1},

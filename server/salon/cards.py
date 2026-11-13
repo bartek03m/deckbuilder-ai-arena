@@ -1,4 +1,4 @@
-"""Card types. Loading and validating /data is added in S1-09."""
+"""Card types and loading/validating card and deck data from /data."""
 from __future__ import annotations
 
 import json
@@ -181,52 +181,6 @@ def _parse_tabs(raw_tabs: Any, card: CardDef, where: str, errors: list[str]) -> 
     return tuple(tabs)
 
 
-def parse_deck(data: Any, cards: dict[str, CardDef]) -> list[CardInstance]:
-    """Validate the content of a deck file and return its card copies (count expanded)."""
-
-    errors: list[str] = []
-    if not isinstance(data, dict):
-        raise CardDataError(["deck: expected an object"])
-    _check_fields(data, DECK_FIELDS, DECK_FIELDS, "deck", errors)
-    if errors:
-        raise CardDataError(errors)
-    deck_id = data["id"]
-    if not isinstance(deck_id, str) or not deck_id:
-        errors.append("deck: 'id' must be a non-empty string")
-    if not isinstance(data["cards"], list):
-        raise CardDataError(errors + [f"deck '{deck_id}': 'cards' must be a list"])
-
-    instances: list[CardInstance] = []
-    for i, raw in enumerate(data["cards"]):
-        where = f"deck '{deck_id}' cards[{i}]"
-        if not isinstance(raw, dict):
-            errors.append(f"{where}: entry must be an object")
-            continue
-        n = len(errors)
-        _check_fields(raw, ENTRY_FIELDS, {"card"}, where, errors)
-        if len(errors) > n:
-            continue
-        card = cards.get(raw["card"])
-        if card is None:
-            errors.append(f"{where}: unknown card id {raw['card']!r}")
-            continue
-        where = f"{where} ('{card.id}')"
-        count = raw.get("count", 1)
-        if not _is_int(count) or count < 1:
-            errors.append(f"{where}: 'count' must be an integer >= 1, got {count!r}")
-            continue
-        tabs = _parse_tabs(raw.get("tabs", []), card, where, errors)
-        instances.extend(CardInstance(card, tabs) for _ in range(count))
-
-    jokers = sum(1 for inst in instances if inst.card.is_joker)
-    if jokers > MAX_JOKERS_PER_DECK:
-        errors.append(f"deck '{deck_id}': at most {MAX_JOKERS_PER_DECK} Joker, got {jokers}")
-    if not instances and not errors:
-        errors.append(f"deck '{deck_id}': deck is empty")
-    if errors:
-        raise CardDataError(errors)
-    return instances
-
 def parse_cards(data: Any) -> dict[str, CardDef]:
     """Validate the content of cards.json and return definitions by id."""
 
@@ -271,6 +225,9 @@ def parse_deck(data: Any, cards: dict[str, CardDef]) -> list[CardInstance]:
         n = len(errors)
         _check_fields(raw, ENTRY_FIELDS, {"card"}, where, errors)
         if len(errors) > n:
+            continue
+        if not isinstance(raw["card"], str):
+            errors.append(f"{where}: 'card' must be a string, got {raw['card']!r}")
             continue
         card = cards.get(raw["card"])
         if card is None:
