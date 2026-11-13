@@ -77,7 +77,7 @@ jobs:
       - name: Find solution
         id: sln
         run: |
-          SLN=$(find . -maxdepth 1 -name '*.sln' | head -n 1)
+          SLN=$(find . -maxdepth 2 -name '*.sln' | head -n 1)
           if [ -z "$SLN" ]; then
             echo "::warning::No .sln file in client/ - skipping build (Godot project comes in S1-12)"
           else
