@@ -72,5 +72,5 @@ UCT = W/N + c · √(ln dost. / N)
 - Propozycja: dodać do `Observation` jawne listy obu stosów odrzuconych i własnej talii (zagrane karty i tak są jawne).
 
 ### Prototyp z DAA-77
-- Ogólny MCTS za interfejsem `legal_actions` / `apply` / `is_terminal` / `result`, sprawdzony na prostej grze.
+- Ogólny MCTS za protokołem `GameState` (`legal_moves` / `play` / `is_terminal` / `reward` / `player_to_move`), sprawdzony na kółku i krzyżyku. Silnik Salonu będzie miał funkcje `legal_actions` / `apply`, więc w S4-08 wystarczy cienki adapter.
 - W S4-08 podmieniamy tylko grę na silnik Salonu i dodajemy determinizację oraz licznik dostępności.

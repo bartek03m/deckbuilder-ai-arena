@@ -16,7 +16,6 @@ DRAW = "XOXXOOOXX"
 
 # initial
 
-
 def test_initial_board_is_empty():
     s = TicTacToeState.initial()
     assert s.board == (None,) * 9
@@ -24,7 +23,6 @@ def test_initial_board_is_empty():
 
 
 # winner
-
 
 def test_no_winner_on_empty_board():
     assert TicTacToeState.initial().winner() is None
@@ -51,7 +49,6 @@ def test_every_line_wins(line):
 
 # is_terminal
 
-
 @pytest.mark.parametrize(
     "cells, expected",
     [
@@ -66,7 +63,6 @@ def test_is_terminal(cells, expected):
 
 
 # legal_moves
-
 
 def test_legal_moves_on_empty_board():
     assert TicTacToeState.initial().legal_moves() == list(range(9))
@@ -85,7 +81,6 @@ def test_no_legal_moves_on_full_board():
 
 
 # play
-
 
 def test_play_places_mark_and_switches_player():
     s = TicTacToeState.initial().play(4)
@@ -113,7 +108,6 @@ def test_play_after_game_over_raises():
 
 # reward
 
-
 def test_reward_for_win():
     s = make("XXXOO....", 1)
     assert s.reward(0) == 1.0
@@ -132,7 +126,6 @@ def test_reward_while_game_in_progress_raises():
 
 
 # whole random games
-
 
 @given(st.randoms(use_true_random=False))
 def test_random_game_always_ends(rnd):
