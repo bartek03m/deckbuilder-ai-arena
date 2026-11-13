@@ -1,7 +1,6 @@
 import copy
 import pytest
-from salon.cards import CardDataError, Color, _check_fields, _is_int, parse_cards
-
+from salon.cards import CardDataError, Color, Tab, _check_fields, _is_int, parse_cards, parse_deck
 def test_card_data_error_lists_all_errors():
     e = CardDataError(["first problem", "second problem"])
     assert e.errors == ["first problem", "second problem"]
@@ -105,3 +104,67 @@ def test_all_errors_are_reported():
 def test_cards_must_be_a_list():
     with pytest.raises(CardDataError):
         parse_cards({"karty": []})
+
+JOKER = {"id": "joker", "name": "Joker", "colors": ["purple"], "cost": 2,
+         "effects": {"damage": 4, "shield": 4, "draw": 1}, "rarity": "rare"}
+RAINBOW = [{"color": "rainbow", "value": 3}]
+
+
+def known_cards():
+    return parse_cards({"cards": [CIOS, JOKER]})
+
+
+def deck(*entries):
+    return {"id": "test", "cards": list(entries)}
+
+
+def test_deck_expands_count():
+    cards = parse_deck(deck({"card": "cios", "count": 3}), known_cards())
+    assert len(cards) == 3
+    assert all(c.card.id == "cios" for c in cards)
+
+
+def test_count_defaults_to_one_and_tabs_to_none():
+    [inst] = parse_deck(deck({"card": "cios"}), known_cards())
+    assert inst.tabs == ()
+
+
+def test_tabs_are_read():
+    [inst] = parse_deck(deck({"card": "cios", "tabs": [{"color": "green", "value": 2}]}), known_cards())
+    assert inst.tabs == (Tab(Color.GREEN, 2),)
+
+
+def test_joker_with_rainbow_ok():
+    [inst] = parse_deck(deck({"card": "joker", "tabs": RAINBOW}), known_cards())
+    assert inst.tabs == (Tab(Color.RAINBOW, 3),)
+
+
+@pytest.mark.parametrize("entry", [
+    {"card": "nieznana"},
+    {"card": "cios", "count": 0},
+    {"card": "cios", "ilosc": 2},
+    {"card": "cios", "tabs": [{"color": "red", "value": 1}, {"color": "green", "value": 1},
+                              {"color": "blue", "value": 1}]},
+    {"card": "cios", "tabs": [{"color": "red", "value": 1}, {"color": "red", "value": 2}]},
+    {"card": "cios", "tabs": [{"color": "red", "value": -1}]},
+    {"card": "cios", "tabs": [{"color": "purple", "value": 1}]},
+    {"card": "cios", "tabs": RAINBOW},
+    {"card": "joker"},
+    {"card": "joker", "tabs": [{"color": "red", "value": 3}]},
+    {"card": "joker", "tabs": RAINBOW + [{"color": "red", "value": 1}]},
+    {"card": "joker", "count": 2, "tabs": RAINBOW},
+])
+def test_invalid_deck_entry_rejected(entry):
+    with pytest.raises(CardDataError):
+        parse_deck(deck(entry), known_cards())
+
+
+def test_two_jokers_in_separate_entries_rejected():
+    entry = {"card": "joker", "tabs": RAINBOW}
+    with pytest.raises(CardDataError, match="at most 1 Joker"):
+        parse_deck(deck(entry, entry), known_cards())
+
+
+def test_empty_deck_rejected():
+    with pytest.raises(CardDataError, match="empty"):
+        parse_deck(deck(), known_cards())

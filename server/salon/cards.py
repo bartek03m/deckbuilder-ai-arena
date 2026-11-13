@@ -141,6 +141,91 @@ def _parse_card(raw: Any, where: str, errors: list[str]) -> CardDef | None:
     return CardDef(id=card_id, name=name, colors=tuple(colors), cost=cost,
                    damage=values["damage"], shield=values["shield"], draw=values["draw"], rarity=rarity)
 
+def _parse_tabs(raw_tabs: Any, card: CardDef, where: str, errors: list[str]) -> tuple[Tab, ...]:
+    if not isinstance(raw_tabs, list):
+        errors.append(f"{where}: 'tabs' must be a list")
+        return ()
+    if len(raw_tabs) > MAX_TABS:
+        errors.append(f"{where}: at most {MAX_TABS} tabs, got {len(raw_tabs)}")
+    tabs: list[Tab] = []
+    for j, raw in enumerate(raw_tabs):
+        tw = f"{where} tabs[{j}]"
+        if not isinstance(raw, dict):
+            errors.append(f"{tw}: tab must be an object")
+            continue
+        n = len(errors)
+        _check_fields(raw, TAB_FIELDS, TAB_FIELDS, tw, errors)
+        if len(errors) > n:
+            continue
+        try:
+            color = Color(raw["color"])
+        except ValueError:
+            color = None
+        if color not in TAB_COLORS:
+            errors.append(f"{tw}: unknown tab color {raw['color']!r}")
+            continue
+        value = raw["value"]
+        if not _is_int(value) or value < 0:
+            errors.append(f"{tw}: 'value' must be an integer >= 0, got {value!r}")
+            continue
+        tabs.append(Tab(color, value))
+
+    colors = [t.color for t in tabs]
+    if len(set(colors)) != len(colors):
+        errors.append(f"{where}: tab colors must be different")
+    if card.is_joker:
+        if colors != [Color.RAINBOW]:
+            errors.append(f"{where}: Joker must have exactly one 'rainbow' tab")
+    elif Color.RAINBOW in colors:
+        errors.append(f"{where}: 'rainbow' tab is only allowed on the Joker")
+    return tuple(tabs)
+
+
+def parse_deck(data: Any, cards: dict[str, CardDef]) -> list[CardInstance]:
+    """Validate the content of a deck file and return its card copies (count expanded)."""
+    
+    errors: list[str] = []
+    if not isinstance(data, dict):
+        raise CardDataError(["deck: expected an object"])
+    _check_fields(data, DECK_FIELDS, DECK_FIELDS, "deck", errors)
+    if errors:
+        raise CardDataError(errors)
+    deck_id = data["id"]
+    if not isinstance(deck_id, str) or not deck_id:
+        errors.append("deck: 'id' must be a non-empty string")
+    if not isinstance(data["cards"], list):
+        raise CardDataError(errors + [f"deck '{deck_id}': 'cards' must be a list"])
+
+    instances: list[CardInstance] = []
+    for i, raw in enumerate(data["cards"]):
+        where = f"deck '{deck_id}' cards[{i}]"
+        if not isinstance(raw, dict):
+            errors.append(f"{where}: entry must be an object")
+            continue
+        n = len(errors)
+        _check_fields(raw, ENTRY_FIELDS, {"card"}, where, errors)
+        if len(errors) > n:
+            continue
+        card = cards.get(raw["card"])
+        if card is None:
+            errors.append(f"{where}: unknown card id {raw['card']!r}")
+            continue
+        where = f"{where} ('{card.id}')"
+        count = raw.get("count", 1)
+        if not _is_int(count) or count < 1:
+            errors.append(f"{where}: 'count' must be an integer >= 1, got {count!r}")
+            continue
+        tabs = _parse_tabs(raw.get("tabs", []), card, where, errors)
+        instances.extend(CardInstance(card, tabs) for _ in range(count))
+
+    jokers = sum(1 for inst in instances if inst.card.is_joker)
+    if jokers > MAX_JOKERS_PER_DECK:
+        errors.append(f"deck '{deck_id}': at most {MAX_JOKERS_PER_DECK} Joker, got {jokers}")
+    if not instances and not errors:
+        errors.append(f"deck '{deck_id}': deck is empty")
+    if errors:
+        raise CardDataError(errors)
+    return instances
 
 def parse_cards(data: Any) -> dict[str, CardDef]:
     """Validate the content of cards.json and return definitions by id."""
@@ -161,3 +246,50 @@ def parse_cards(data: Any) -> dict[str, CardDef]:
     if errors:
         raise CardDataError(errors)
     return cards
+
+def parse_deck(data: Any, cards: dict[str, CardDef]) -> list[CardInstance]:
+    """Validate the content of a deck file and return its card copies (count expanded)."""
+
+    errors: list[str] = []
+    if not isinstance(data, dict):
+        raise CardDataError(["deck: expected an object"])
+    _check_fields(data, DECK_FIELDS, DECK_FIELDS, "deck", errors)
+    if errors:
+        raise CardDataError(errors)
+    deck_id = data["id"]
+    if not isinstance(deck_id, str) or not deck_id:
+        errors.append("deck: 'id' must be a non-empty string")
+    if not isinstance(data["cards"], list):
+        raise CardDataError(errors + [f"deck '{deck_id}': 'cards' must be a list"])
+ 
+    instances: list[CardInstance] = []
+    for i, raw in enumerate(data["cards"]):
+        where = f"deck '{deck_id}' cards[{i}]"
+        if not isinstance(raw, dict):
+            errors.append(f"{where}: entry must be an object")
+            continue
+        n = len(errors)
+        _check_fields(raw, ENTRY_FIELDS, {"card"}, where, errors)
+        if len(errors) > n:
+            continue
+        card = cards.get(raw["card"])
+        if card is None:
+            errors.append(f"{where}: unknown card id {raw['card']!r}")
+            continue
+        where = f"{where} ('{card.id}')"
+        count = raw.get("count", 1)
+        if not _is_int(count) or count < 1:
+            errors.append(f"{where}: 'count' must be an integer >= 1, got {count!r}")
+            continue
+        tabs = _parse_tabs(raw.get("tabs", []), card, where, errors)
+        instances.extend(CardInstance(card, tabs) for _ in range(count))
+ 
+    jokers = sum(1 for inst in instances if inst.card.is_joker)
+    if jokers > MAX_JOKERS_PER_DECK:
+        errors.append(f"deck '{deck_id}': at most {MAX_JOKERS_PER_DECK} Joker, got {jokers}")
+    if not instances and not errors:
+        errors.append(f"deck '{deck_id}': deck is empty")
+    if errors:
+        raise CardDataError(errors)
+    return instances
+ 
