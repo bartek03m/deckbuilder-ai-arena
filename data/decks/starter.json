@@ -1,0 +1,11 @@
+{
+  "id": "starter",
+  "cards": [
+    { "card": "cios", "count": 1, "tabs": [ { "color": "green", "value": 2 } ] },
+    { "card": "cios", "count": 3 },
+    { "card": "blok", "count": 1, "tabs": [ { "color": "red", "value": 2 } ] },
+    { "card": "blok", "count": 3 },
+    { "card": "namysl", "count": 1, "tabs": [ { "color": "red", "value": 1 } ] },
+    { "card": "namysl", "count": 1 }
+  ]
+}
