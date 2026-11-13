@@ -183,7 +183,7 @@ def _parse_tabs(raw_tabs: Any, card: CardDef, where: str, errors: list[str]) -> 
 
 def parse_deck(data: Any, cards: dict[str, CardDef]) -> list[CardInstance]:
     """Validate the content of a deck file and return its card copies (count expanded)."""
-    
+
     errors: list[str] = []
     if not isinstance(data, dict):
         raise CardDataError(["deck: expected an object"])
@@ -292,4 +292,29 @@ def parse_deck(data: Any, cards: dict[str, CardDef]) -> list[CardInstance]:
     if errors:
         raise CardDataError(errors)
     return instances
- 
+
+
+def _read_json(path: Path) -> Any:
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except json.JSONDecodeError as e:
+        raise CardDataError([f"{path.name}: invalid JSON ({e})"]) from e
+
+
+def load_cards(path: Path | str | None = None) -> dict[str, CardDef]:
+    """Load and validate data/cards.json."""
+
+    return parse_cards(_read_json(Path(path) if path else DATA_DIR / "cards.json"))
+
+
+def load_deck(deck_id: str, cards: dict[str, CardDef] | None = None, data_dir: Path | str | None = None) -> list[CardInstance]:
+    """Load and validate data/decks/<deck_id>.json."""
+
+    base = Path(data_dir) if data_dir else DATA_DIR
+    if cards is None:
+        cards = load_cards(base / "cards.json")
+    data = _read_json(base / "decks" / f"{deck_id}.json")
+    if isinstance(data, dict) and data.get("id") != deck_id:
+        raise CardDataError([f"decks/{deck_id}.json: 'id' is {data.get('id')!r}, expected {deck_id!r}"])
+    return parse_deck(data, cards)

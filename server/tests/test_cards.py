@@ -1,6 +1,8 @@
 import copy
 import pytest
-from salon.cards import CardDataError, Color, Tab, _check_fields, _is_int, parse_cards, parse_deck
+import json
+from collections import Counter
+from salon.cards import CardDataError, Color, Tab, _check_fields, _is_int, parse_cards, parse_deck, load_cards, load_deck
 def test_card_data_error_lists_all_errors():
     e = CardDataError(["first problem", "second problem"])
     assert e.errors == ["first problem", "second problem"]
@@ -168,3 +170,41 @@ def test_two_jokers_in_separate_entries_rejected():
 def test_empty_deck_rejected():
     with pytest.raises(CardDataError, match="empty"):
         parse_deck(deck(), known_cards())
+
+def test_cards_json_loads():
+    cards = load_cards()
+    assert set(cards) == {"cios", "blok", "namysl"}
+    assert (cards["cios"].damage, cards["blok"].shield, cards["namysl"].draw) == (5, 4, 2)
+
+
+def test_starter_deck_loads():
+    starter = load_deck("starter")
+    assert len(starter) == 10
+    assert Counter(c.card.id for c in starter) == {"cios": 4, "blok": 4, "namysl": 2}
+    assert all(c.card.cost == 1 for c in starter)
+
+
+def test_starter_deck_has_three_fixed_tabs():
+    tabs = Counter((c.card.id, c.tabs) for c in load_deck("starter"))
+    assert tabs[("cios", (Tab(Color.GREEN, 2),))] == 1
+    assert tabs[("blok", (Tab(Color.RED, 2),))] == 1
+    assert tabs[("namysl", (Tab(Color.RED, 1),))] == 1
+    assert sum(n for (_, t), n in tabs.items() if t) == 3
+
+
+def write_data(tmp_path, deck):
+    (tmp_path / "decks").mkdir()
+    (tmp_path / "cards.json").write_text(json.dumps({"cards": [CIOS]}), encoding="utf-8")
+    (tmp_path / "decks" / "starter.json").write_text(deck, encoding="utf-8")
+
+
+def test_deck_id_must_match_file_name(tmp_path):
+    write_data(tmp_path, json.dumps({"id": "inna", "cards": [{"card": "cios"}]}))
+    with pytest.raises(CardDataError, match="expected 'starter'"):
+        load_deck("starter", data_dir=tmp_path)
+
+
+def test_invalid_json_reported(tmp_path):
+    write_data(tmp_path, '{"id": "starter", "cards": [')
+    with pytest.raises(CardDataError, match="invalid JSON"):
+        load_deck("starter", data_dir=tmp_path)
