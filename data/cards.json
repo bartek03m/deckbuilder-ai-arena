@@ -1,0 +1,7 @@
+{
+  "cards": [
+    { "id": "cios", "name": "Cios", "colors": ["red"], "cost": 1, "effects": { "damage": 5 }, "rarity": "starter" },
+    { "id": "blok", "name": "Blok", "colors": ["green"], "cost": 1, "effects": { "shield": 4 }, "rarity": "starter" },
+    { "id": "namysl", "name": "Namysł", "colors": ["blue"], "cost": 1, "effects": { "draw": 2 }, "rarity": "starter" }
+  ]
+}
