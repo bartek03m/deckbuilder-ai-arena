@@ -3,7 +3,7 @@ import copy
 from hypothesis import given, strategies as st
 
 from salon.cards import CardDef, CardInstance, Color, Tab
-from salon.engine.battle import MAX_HAND, START_HAND, draw_cards, new_battle
+from salon.engine.battle import MAX_HAND, START_HAND, draw_cards, create_battle
 
 CIOS = CardDef("cios", "Cios", (Color.RED,), 1, 5, 0, 0, "starter")
 BLOK = CardDef("blok", "Blok", (Color.GREEN,), 1, 0, 4, 0, "starter")
@@ -33,7 +33,7 @@ def snapshot(state):
 
 
 def battle(seed):
-    return new_battle(seed, starter_deck(), starter_deck())
+    return create_battle(seed, starter_deck(), starter_deck())
 
 
 def test_new_battle_start_values():
