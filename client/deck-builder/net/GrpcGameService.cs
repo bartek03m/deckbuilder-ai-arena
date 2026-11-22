@@ -19,8 +19,11 @@ public sealed class GrpcGameService : IGameService
 	public Task<RunState> StartRunAsync(long seed) =>
 		_client.StartRunAsync(new StartRunRequest { Seed = seed }, deadline: Deadline()).ResponseAsync;
 
-	public Task<TurnResult> PlayCardAsync(string sessionId, int cardUid) =>
-		_client.PlayCardAsync(new PlayCardRequest { SessionId = sessionId, CardUid = cardUid }, deadline: Deadline()).ResponseAsync;
+	public Task<TurnResult> PlayCardAsync(string sessionId, int cardUid, bool connect = false, Color tabColor = Color.Unspecified) =>
+		_client.PlayCardAsync(new PlayCardRequest
+		{
+			SessionId = sessionId, CardUid = cardUid, Connect = connect, TabColor = tabColor,
+		}, deadline: Deadline()).ResponseAsync;
 
 	public Task<TurnResult> EndTurnAsync(string sessionId) =>
 		_client.EndTurnAsync(new EndTurnRequest { SessionId = sessionId }, deadline: Deadline()).ResponseAsync;

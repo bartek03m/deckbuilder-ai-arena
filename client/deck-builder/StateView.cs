@@ -19,7 +19,8 @@ public partial class StateView : Control
 	private IGameService _service;
 	private string _sessionId = "";
 	private readonly List<string> _log = new();
-
+	
+	private bool _battleOver;
 	private Label _connection;
 	private Label _enemy;
 	private Label _enemyHand;
@@ -98,12 +99,13 @@ public partial class StateView : Control
 	{
 		if (state == null)
 			return;
-
+			
+		_battleOver = state.Result != BattleResult.Ongoing;	
 		_enemy.Text = $"Enemy:  {FormatSide(state.Enemy)}";
 		_enemyHand.Text = $"Enemy hand ({state.EnemyHand.Count}): " +
 			string.Join(", ", state.EnemyHand.Select(back => string.Join("/", back.Colors)));
 		_row.Text = "Row: " + (state.Row.Count == 0 ? "empty" : string.Join(", ", state.Row.Select(c => c.Name)));
-		_player.Text = $"Round {state.Round}   Player:  {FormatSide(state.Player)}";
+		_player.Text = $"Round {state.Round}   Result {state.Result}   Player:  {FormatSide(state.Player)}";
 
 		foreach (Node child in _hand.GetChildren())
 			child.QueueFree();
@@ -119,6 +121,7 @@ public partial class StateView : Control
 
 	private void SetButtonsDisabled(bool disabled)
 	{
+		disabled = disabled || _battleOver;
 		_endTurn.Disabled = disabled;
 		foreach (Node child in _hand.GetChildren())
 			if (child is Button button)
@@ -161,6 +164,12 @@ public partial class StateView : Control
 			$"{(e.ShieldChanged.Player ? "Player" : "Enemy")} shield is now {e.ShieldChanged.Value}",
 		ProtoEvent.KindOneofCase.CardsDrawn =>
 			$"{(e.CardsDrawn.Player ? "Player" : "Enemy")} drew {e.CardsDrawn.Count} cards",
+					ProtoEvent.KindOneofCase.EnergyChanged =>
+			$"{(e.EnergyChanged.Player ? "Player" : "Enemy")} energy is now {e.EnergyChanged.Value}",
+		ProtoEvent.KindOneofCase.CardsDiscarded =>
+			$"{(e.CardsDiscarded.Player ? "Player" : "Enemy")} discarded {e.CardsDiscarded.CardUids.Count} cards",
+		ProtoEvent.KindOneofCase.BattleEnded =>
+			$"Battle ended: {e.BattleEnded.Result}",
 		_ => $"Unknown event: {e.KindCase}",
 	};
 }

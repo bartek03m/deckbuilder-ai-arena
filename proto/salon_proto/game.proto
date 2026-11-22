@@ -12,6 +12,12 @@ enum Color {
     COLOR_RAINBOW = 5;
 }
 
+enum BattleResult {
+    BATTLE_RESULT_ONGOING = 0;
+    BATTLE_RESULT_WON = 1;
+    BATTLE_RESULT_LOST = 2;
+}
+
 message Tab {
     Color color = 1;
     int32 value = 2;
@@ -49,6 +55,7 @@ message BattleState {
     repeated Card row = 4;
     repeated CardBack enemy_hand = 5;
     int32 round = 6;
+    BattleResult result = 8;
 }
 
 message CardPlayed {
@@ -77,6 +84,20 @@ message CardsDrawn {
     int32 count = 2;
 }
 
+message EnergyChanged{
+    bool player = 1;
+    int32 value = 2;
+}
+
+message CardsDiscarded{
+    bool player = 1;
+    repeated int32 card_uids = 2;
+}
+
+message BattleEnded {
+    BattleResult result = 1;
+}
+
 message Event{
     oneof kind {
         CardPlayed card_played = 1;
@@ -84,6 +105,9 @@ message Event{
         Damage damage = 3;
         ShieldChanged shield_changed = 4;
         CardsDrawn cards_drawn = 5;
+        EnergyChanged energy_changed = 6;
+        CardsDiscarded cards_discarded = 7;
+        BattleEnded battle_ended = 8;
     }
 }
 
