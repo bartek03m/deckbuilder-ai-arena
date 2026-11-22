@@ -5,9 +5,9 @@ import grpc
 from salon_proto import game_pb2_grpc as rpc
 from salon.grpc_server.servicer import Game
 
-def create_server(address):
+def create_server(address, game=None):
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=4))
-    rpc.add_GameServicer_to_server(Game(), server)
+    rpc.add_GameServicer_to_server(game if game is not None else Game(), server)
     port = server.add_insecure_port(address)
     return server, port
 
