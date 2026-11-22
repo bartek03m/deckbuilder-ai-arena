@@ -45,8 +45,10 @@ layout_mode = 2
 
 [node name="EndTurn" type="Button" parent="Layout" unique_id=94853400]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 40)
 layout_mode = 2
 size_flags_horizontal = 0
+text = "Atak!"
 
 [node name="Events" type="Label" parent="Layout" unique_id=239390562]
 unique_name_in_owner = true
