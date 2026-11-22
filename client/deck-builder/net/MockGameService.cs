@@ -34,7 +34,7 @@ public sealed class MockGameService : IGameService
 		return Task.FromResult(new RunState { SessionId = MockSessionId, Battle = BuildState() });
 	}
 
-	public Task<TurnResult> PlayCardAsync(string sessionId, int cardUid)
+	public Task<TurnResult> PlayCardAsync(string sessionId, int cardUid, bool connect = false, ProtoColor tabColor = ProtoColor.Unspecified)
 	{
 		if (sessionId != MockSessionId)
 			return Fail<TurnResult>(StatusCode.NotFound, "session id does not match");
