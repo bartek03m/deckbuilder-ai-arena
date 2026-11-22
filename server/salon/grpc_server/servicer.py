@@ -135,7 +135,7 @@ class Game(rpc.GameServicer):
         enemy_card = sample_state.make_enemy_card(sample_state.ENEMY_CARD_UID + self.round_no)
         events.append(_card_played(False, enemy_card))
 
-        absorbed = min(self.player_shield, self.player_shield - enemy_card.damage)
+        absorbed = min(self.player_shield, enemy_card.damage)
         self.player_hp = max(0, self.player_hp - (enemy_card.damage - absorbed))
         events.append(_damage(True, enemy_card.damage, absorbed))
         if self.player_hp == 0:
