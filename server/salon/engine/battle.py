@@ -49,4 +49,4 @@ def draw_cards(state: BattleState, side: SideState, count: int) -> list[GameCard
         card = side.deck.pop()              # default pop arg is -1
         side.hand.append(card)
         drawn.append(card)
-    return drawn 
+    return drawn
