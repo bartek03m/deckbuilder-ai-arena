@@ -97,7 +97,7 @@ class Game(rpc.GameServicer):
 
         events = [_card_played(True, card)]
         if request.connect and previous is not None and previous.tabs:
-            events.append(_tab_activated(previous.card_uid, previous.tabs[0])) # TODO: you need to check which tab is the one activated its not always 0
+            events.append(_tab_activated(previous.uid, previous.tabs[0])) # TODO: you need to check which tab is the one activated its not always 0
         events.append(_energy_changed(True, self.energy)) # new amount of energy after played card
 
         return pb.TurnResult(events=events, state=self._state())
