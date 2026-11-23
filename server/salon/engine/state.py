@@ -3,6 +3,12 @@ from __future__ import annotations
 import random
 from dataclasses import dataclass, field
 from salon.cards import CardInstance
+from enum import Enum
+
+class BattleResult(str, Enum):
+    ONGOING = "ongoing"
+    WON = "won"
+    LOST = "lost"
 
 @dataclass(frozen=True) # frozen means not changeable after creation
 class GameCard:
@@ -37,3 +43,4 @@ class BattleState:
     row: list[GameCard]
     round: int
     rng: random.Random      # the ONLY source of randomness in a battle
+
