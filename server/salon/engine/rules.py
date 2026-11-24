@@ -28,10 +28,3 @@ def legal_actions(state: BattleState) ->list[Action]:
                     actions.append(PlayCard(card_uid=card.uid, connect = True, tab_color=tab.color))
     actions.append(EndTurn())
     return actions
-
-def apply(state: BattleState, action: Action) -> bool:
-    clone_state = state.clone_state()
-    allowed_actions = legal_actions(clone_state)
-    if action not in allowed_actions:
-        return False
-    

@@ -9,6 +9,8 @@ from .state import BattleState, GameCard, SideState
 START_HAND = 5
 MAX_HAND = 7
 FIRST_TURN_ENERGY = 2
+TURN_ENERGY = 3
+TURN_DRAW = 3
 
 def create_battle(
     seed: int,
