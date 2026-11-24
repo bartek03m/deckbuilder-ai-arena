@@ -9,6 +9,8 @@ from .state import BattleState, GameCard, SideState
 START_HAND = 5
 MAX_HAND = 7
 FIRST_TURN_ENERGY = 2
+TURN_ENERGY = 3
+TURN_DRAW = 3
 
 def create_battle(
     seed: int,
@@ -49,4 +51,4 @@ def draw_cards(state: BattleState, side: SideState, count: int) -> list[GameCard
         card = side.deck.pop()              # default pop arg is -1
         side.hand.append(card)
         drawn.append(card)
-    return drawn 
+    return drawn
