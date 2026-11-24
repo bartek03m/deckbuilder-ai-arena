@@ -9,6 +9,7 @@ public partial class Card : ColorRect
 {
 	// SIGNAL
 	[Signal] public delegate void CardClickedEventHandler(int cardUid);
+	[Signal] public delegate void CardDroppedEventHandler(int cardUid, Vector2 globalPosition);
 
 	// EXPORT
 	[Export] public Vector2 TabSize { get; set; } = new(24, 20);
@@ -25,8 +26,10 @@ public partial class Card : ColorRect
 	private List<ProtoColor> _currentColors = new();
 
 	// DRAG STATE
+	private const float ClickDragThreshold = 5f;
 	private bool _isDragging; // true = player is dragging the card
 	private Vector2 _dragOffset; // offset between mouse position and card position
+	private Vector2 _pressPosition; // mouse position when clicked, to distinguish click from drag
 
 	// COLOR PALETTE	
 	// CardColors — card background color
@@ -59,9 +62,6 @@ public partial class Card : ColorRect
 		_effectLabel.MouseFilter = MouseFilterEnum.Ignore;
 		_costLabel.HorizontalAlignment = HorizontalAlignment.Center;
 		_costLabel.VerticalAlignment = VerticalAlignment.Center;
-
-		ProtoCard card = new ProtoCard { Uid = 1, Name = "Atak", Cost = 1, Damage = 2, Colors = { ProtoColor.Red } };
-		SetCardData(card);
 	}
 
 	public override void _Process(double delta) // _Process(delta) — call every frame to move the card if _isDragging is true
@@ -83,13 +83,21 @@ public partial class Card : ColorRect
 			if (mouseEvent.Pressed)
 			{
 				_isDragging = true;
+				_pressPosition = mouseEvent.GlobalPosition;
 				_dragOffset = GetGlobalMousePosition() - GlobalPosition;
 			}
-			else
+			else if (_isDragging)
 			{
 				_isDragging = false;
-				// Emit click signal so StateView / Table can react
-				EmitSignal(SignalName.CardClicked, _cardUid);
+				float distanceMoved = mouseEvent.GlobalPosition.DistanceTo(_pressPosition);
+				if (distanceMoved < ClickDragThreshold)
+				{
+					EmitSignal(SignalName.CardClicked, _cardUid);
+				}
+				else
+				{
+					EmitSignal(SignalName.CardDropped, _cardUid, GlobalPosition);
+				}
 			}
 		}
 	}
@@ -224,7 +232,7 @@ public partial class Card : ColorRect
 				{
 					CustomMinimumSize = TabSize,
 					MouseFilter = MouseFilterEnum.Pass,
-					TooltipText = $"Tęcza +{tab.Value}"
+					TooltipText = $"Rainbow +{tab.Value}"
 				};
 
 				var stripes = new HBoxContainer
