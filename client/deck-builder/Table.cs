@@ -11,7 +11,7 @@ public partial class Table : Control
 	// CARD SCENE
 	[Export] public PackedScene CardScene { get; set; }
 
-	// PLAYER STATS
+	// PLAYER AND ENEMY STATS
 	private Label _playerHpLabel;
 	private Label _playerShieldLabel;
 	private Label _playerEnergyLabel;
@@ -19,6 +19,7 @@ public partial class Table : Control
 	private Label _enemyNameLabel;
 	private Label _enemyHpLabel;
 	private Label _enemyShieldLabel;
+	private Label _enemyEnergyLabel;
 	private Label _roundLabel;
 
 	// DECK AND DISCARD PILE AND ATTACK BUTTON
@@ -48,6 +49,7 @@ public partial class Table : Control
 		_enemyNameLabel      = GetNode<Label>("TopBar/EnemyStats/EnemyStatsVBox/EnemyNameLabel");
 		_enemyHpLabel        = GetNode<Label>("TopBar/EnemyStats/EnemyStatsVBox/EnemyHpLabel");
 		_enemyShieldLabel    = GetNode<Label>("TopBar/EnemyStats/EnemyStatsVBox/EnemyShieldLabel");
+		_enemyEnergyLabel    = GetNode<Label>("TopBar/EnemyStats/EnemyStatsVBox/EnemyEnergyLabel");
 		_roundLabel          = GetNode<Label>("TopBar/RoundPanel/RoundLabel");
 
 		_deckPileButton      = GetNode<Button>("MiddleArea/DeckPile");
@@ -57,10 +59,6 @@ public partial class Table : Control
 		_playerHandContainer = GetNode<HBoxContainer>("BottomBar/PlayerHand");
 		_enemyHandContainer  = GetNode<HBoxContainer>("TopBar/EnemyHand");
 		_rowContainer        = GetNode<HBoxContainer>("MiddleArea/RowContainer");
-
-		_damagePreviewLabel  = GetNode<Label>("BottomBar/TurnPreview/PreviewVBox/DamagePreviewLabel");
-		_shieldPreviewLabel  = GetNode<Label>("BottomBar/TurnPreview/PreviewVBox/ShieldPreviewLabel");
-		_drawPreviewLabel    = GetNode<Label>("BottomBar/TurnPreview/PreviewVBox/DrawPreviewLabel");
 
 		// MOCK SERVICE
 		var mockService = new MockGameService();
@@ -75,7 +73,6 @@ public partial class Table : Control
 
 		UpdateStats(state);
 		UpdateCards(state);
-		UpdatePreview(state);
 	}
 
 	private void UpdateStats(BattleState state)
@@ -83,7 +80,7 @@ public partial class Table : Control
 		// PLAYER STATS
 		_playerHpLabel.Text     = $"HP: {state.Player.Hp} / {state.Player.MaxHp}";
 		_playerShieldLabel.Text = $"Shield: {state.Player.Shield}";
-		_playerEnergyLabel.Text = $"Energy: {state.Player.Energy} / 3";
+		_playerEnergyLabel.Text = $"Energy: {state.Player.Energy}";
 
 		// DECK AND DISCARD PILE
 		_deckPileButton.Text    = $"Deck\n({state.Player.DeckCount})";
@@ -96,6 +93,7 @@ public partial class Table : Control
 		_enemyHpLabel.Text      = $"HP: {state.Enemy.Hp} / {state.Enemy.MaxHp}";
 		_enemyShieldLabel.Text  = $"Shield: {state.Enemy.Shield}";
 		_enemyNameLabel.Text    = "Bot";
+		_enemyEnergyLabel.Text = $"Energy: {state.Enemy.Energy}";
 	}
 
 	private void UpdateCards(BattleState state) { 
@@ -125,23 +123,6 @@ public partial class Table : Control
 			_rowContainer.AddChild(cardInstance);
 			cardInstance.SetCardData(c);
 		}
-	}
-
-	// UPDATE PREVIEW
-	private void UpdatePreview(BattleState state) {
-		int totalDamage = 0;
-		int totalShield = 0;
-		int totalDraw = 3;
-
-		foreach (var c in state.Row) {
-			totalDamage += c.Damage;
-			totalShield += c.Shield;
-			totalDraw += c.Draw;
-		}
-
-		_damagePreviewLabel.Text = $"Damage: {totalDamage}";
-		_shieldPreviewLabel.Text = $"Shield: {totalShield}";
-		_drawPreviewLabel.Text   = $"Draw: {totalDraw}";
 	}
 
 	private void ClearContainer(Node container) {
