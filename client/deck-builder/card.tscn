@@ -3,8 +3,10 @@
 [ext_resource type="Script" uid="uid://cci6ukdga67jt" path="res://Card.cs" id="1_kikvd"]
 
 [node name="Card" type="ColorRect" unique_id=1797523952]
+custom_minimum_size = Vector2(130, 180)
+custom_maximum_size = Vector2(130, 180)
 offset_right = 140.0
-offset_bottom = 200.0
+offset_bottom = 180.0
 color = Color(0.46076572, 0.17684379, 0.060623154, 1)
 script = ExtResource("1_kikvd")
 
@@ -19,27 +21,27 @@ offset_bottom = 30.0
 layout_mode = 0
 offset_left = 34.0
 offset_top = 6.0
-offset_right = 132.0
+offset_right = 124.0
 offset_bottom = 30.0
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="EffectLabel" type="Label" parent="." unique_id=1755759789]
-custom_minimum_size = Vector2(120, 150)
-custom_maximum_size = Vector2(120, 150)
+custom_minimum_size = Vector2(110, 140)
+custom_maximum_size = Vector2(110, 140)
 layout_mode = 0
 offset_left = 10.0
-offset_top = 40.0
+offset_top = 30.0
 offset_right = 130.0
-offset_bottom = 190.0
+offset_bottom = 170.0
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 2
 
 [node name="TabsContainer" type="VBoxContainer" parent="." unique_id=701482214]
 layout_mode = 0
-offset_left = 116.0
-offset_top = 36.0
-offset_right = 150.0
-offset_bottom = 156.0
+offset_left = 120.0
+offset_top = 30.0
+offset_right = 149.9997
+offset_bottom = 150.0
 mouse_filter = 2
