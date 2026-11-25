@@ -17,7 +17,7 @@ def legal_actions(state: BattleState) ->list[Action]:
         if side.energy >= cost:
             actions.append(PlayCard(card_uid=card.uid, connect = False)) 
         
-        # those two if make sense together because even if a tab and card match player always can start new combination for card's full price
+        # those two ifs make sense together because even if a tab and card match player always can start new combination for card's full price
 
         if previous is not None and max(0, cost-1) <= side.energy:
             tabs = matching_tabs(previous=previous, card=card)

@@ -1,5 +1,7 @@
 import pytest
-
+import random
+from hypothesis import given, strategies as st
+from salon.engine.events import BattleEnded, CardsDrawn, Damage, ShieldChanged
 from salon.automata.interface import EndTurn, PlayCard
 from salon.cards import CardDef, CardInstance, Color, Tab
 from salon.engine.apply import apply
@@ -180,3 +182,154 @@ def test_illegal_connect_is_rejected():
     s = battle(hand=[blok], row=[card(100, CIOS, [Tab(Color.RED, 2)])])
     with pytest.raises(ValueError):
         apply(s, PlayCard(card_uid=blok.uid, connect=True))
+
+NAMYSL = CardDef("namysl", "Namysl", (Color.BLUE,), 1, 0, 0, 2, "starter")
+
+def play_and_end(s, *plays):
+    """Play the given (card, connect) pairs, then end the turn."""
+    events = []
+    for c, connect in plays:
+        s, ev = apply(s, PlayCard(card_uid=c.uid, connect=connect))
+        events += ev
+    s, ev = apply(s, EndTurn())
+    return s, events + ev
+
+
+def test_attack_from_the_rules_example():
+    # zasady.md: Cios(+green 2) -> Blok(+red 2) -> Cios = 12 damage, cost 1
+    c1 = card(100, CIOS, [Tab(Color.GREEN, 2)])
+    blok = card(101, BLOK, [Tab(Color.RED, 2)])
+    c2 = card(102, CIOS)
+    s = battle(hand=[c1, blok, c2], energy=3)
+    s, events = play_and_end(s, (c1, False), (blok, True), (c2, True))
+    assert s.enemy.hp == 30 - 12
+    assert s.round == 1
+    damage = [e for e in events if isinstance(e, Damage)]
+    assert damage == [Damage(to_player=False, amount=12, absorbed=0)]
+    assert s.player.shield == 5 + 2          # Blok 5 + green tab 2
+    assert s.player.energy == 2              # 1 + 0 + 0 spent
+
+
+def test_attack_adds_shield_to_attacker():
+    blok = card(100, BLOK)
+    s = battle(hand=[blok])
+    s, _ = apply(s, PlayCard(card_uid=blok.uid, connect=False))
+    s, events = apply(s, EndTurn())
+    assert ShieldChanged(player=True, value=5) in events
+    assert s.player.shield == 5
+
+
+def test_shield_absorbs_damage():
+    cios = card(100, CIOS)
+    s = battle(hand=[cios])
+    s.enemy.shield = 3
+    s, events = play_and_end(s, (cios, False))
+    assert Damage(to_player=False, amount=5, absorbed=3) in events
+    assert s.enemy.hp == 30 - 2
+    assert s.enemy.shield == 0
+
+
+def test_shield_disappears_at_start_of_owners_turn():
+    s = battle(hand=[])
+    s.player.shield = 4
+    s, _ = apply(s, EndTurn())              # automaton's turn: the player's shield stays
+    assert s.player.shield == 4
+    s, events = apply(s, EndTurn())         # player's turn again
+    assert s.player.shield == 0
+    assert ShieldChanged(player=True, value=0) in events
+
+
+def test_no_shield_event_when_shield_was_zero():
+    s = battle(hand=[])
+    s, events = apply(s, EndTurn())
+    assert not any(isinstance(e, ShieldChanged) for e in events)
+
+
+def test_end_of_turn_draws_three_and_resets_energy():
+    s = battle(hand=[], energy=1)
+    s, events = apply(s, EndTurn())
+    assert len(s.player.hand) == 3
+    assert CardsDrawn(player=True, count=3) in events
+    assert s.enemy.energy == 3
+    assert EnergyChanged(player=False, value=3) in events
+
+
+def test_blue_tab_adds_cards_to_draw():
+    c1 = card(100, CIOS, [Tab(Color.BLUE, 2)])
+    nam = card(101, NAMYSL)
+    s = battle(hand=[c1, nam])
+    s.player.deck += [card(300 + i, CIOS) for i in range(5)]    # enough cards to draw 7
+    s, events = play_and_end(s, (c1, False), (nam, True))
+    # 3 base + 2 from Namysl + 2 from the blue tab = 7 cards, the hand was empty
+    assert CardsDrawn(player=True, count=7) in events
+    assert len(s.player.hand) == 7
+
+
+def test_hand_is_capped_at_seven():
+    s = battle(hand=[card(100 + i, CIOS) for i in range(6)])
+    s, events = apply(s, EndTurn())
+    assert len(s.player.hand) == 7
+    assert CardsDrawn(player=True, count=1) in events
+
+
+def test_empty_deck_is_refilled_from_discard():
+    s = battle(hand=[])
+    s.player.discard = s.player.deck[:2] + s.player.discard
+    s.player.deck = s.player.deck[2:3]
+    total = len(s.player.deck) + len(s.player.discard)
+    s, events = apply(s, EndTurn())
+    assert len(s.player.hand) == 3
+    assert len(s.player.deck) + len(s.player.discard) + len(s.player.hand) == total
+
+
+def test_battle_ended_is_the_last_event():
+    cios = card(100, CIOS)
+    s = battle(hand=[cios])
+    s.enemy.hp = 5
+    s, events = play_and_end(s, (cios, False))
+    assert events[-1] == BattleEnded(BattleResult.WON)
+    assert sum(isinstance(e, BattleEnded) for e in events) == 1
+    assert s.result == BattleResult.WON
+    assert legal_actions(s) == []
+
+
+def test_player_loses_when_automaton_kills_them():
+    s = battle(hand=[])
+    s.player.hp = 3
+    s.enemy.hand = [card(200, CIOS)]
+    s.enemy.energy = 3
+    s, _ = apply(s, EndTurn())                                   # to the automaton's turn
+    s, _ = apply(s, PlayCard(card_uid=200, connect=False))
+    s, events = apply(s, EndTurn())
+    assert s.result == BattleResult.LOST
+    assert events[-1] == BattleEnded(BattleResult.LOST)
+
+
+@given(st.integers(min_value=0, max_value=10_000))
+def test_random_games_keep_the_rules(seed):
+    rng = random.Random(seed)
+    s = create_battle(seed, deck(), deck())
+    played = set()
+    for _ in range(600):
+        actions = legal_actions(s)
+        if not actions:
+            break
+        new, events = apply(s, rng.choice(actions))
+        cards = sum(len(x.deck) + len(x.hand) + len(x.discard) for x in (new.player, new.enemy)) + len(new.row)
+        assert cards == 20
+        assert new.player.energy >= 0 and new.enemy.energy >= 0
+        assert new.player.hp >= 0 and new.enemy.hp >= 0
+        assert len(new.player.hand) <= 7 and len(new.enemy.hand) <= 7
+        for e in events:                          # CardPlayed comes before references to its uid
+            if isinstance(e, CardPlayed):
+                played.add(e.card.uid)
+            elif isinstance(e, TabActivated):
+                assert e.card_uid in played
+            elif isinstance(e, CardsDiscarded):
+                assert set(e.card_uids) <= played
+        ended = [isinstance(e, BattleEnded) for e in events]
+        if new.result != BattleResult.ONGOING:
+            assert ended[-1] and sum(ended) == 1
+        else:
+            assert not any(ended)
+        s = new
