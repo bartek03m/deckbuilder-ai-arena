@@ -23,7 +23,7 @@ Przykład - karta Cios (Strike) z talii startowej (starter deck):
 |---|---|---|---|---|
 | 🟥 | 1 | Cios | 5 obrażeń | 🟩 +2 |
 
-Czerwona karta ataku (Strike) o koszcie 1 zadaje 5 obrażeń. Jeśli bezpośrednio po niej zostanie położona karta zielona, zagrywający otrzymuje dodatkowo +2 Tarczy.
+Czerwona karta ataku (Attack) o koszcie 1 zadaje 5 obrażeń. Jeśli bezpośrednio po niej zostanie położona karta zielona, zagrywający otrzymuje dodatkowo +2 Tarczy.
 
 ### 2.2 Rodzaje kart
 
