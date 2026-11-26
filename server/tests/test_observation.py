@@ -4,7 +4,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 from salon.automata.interface import EndTurn, PlayCard
-from salon.cards import CardDef, CardInstance, Color
+from salon.cards import CardDef, CardInstance, Color, Tab
 from salon.engine.apply import apply
 from salon.engine.battle import create_battle
 from salon.engine.observation import observe
@@ -13,6 +13,8 @@ from salon.engine.rules import legal_actions
 STRIKE = CardDef("strike", "Strike", (Color.RED,), 1, 5, 0, 0, "starter")
 HEAVY = CardDef("heavy_strike", "Heavy Strike", (Color.RED,), 2, 9, 0, 0, "common")
 BLOCK = CardDef("block", "Block", (Color.GREEN,), 1, 0, 4, 0, "starter")
+SPARK = CardDef("spark", "Spark", (Color.RED, Color.BLUE), 1, 3, 0, 1, "common")
+JOKER = CardDef("joker", "Joker", (Color.PURPLE,), 2, 4, 4, 1, "rare")
 
 
 def mixed_deck():
@@ -43,10 +45,13 @@ def test_fields_match_state():
     s = battle()
     for for_player, me, opp in ((True, s.player, s.enemy), (False, s.enemy, s.player)):
         obs = observe(s, for_player)
-        assert obs.me.hp == me.hp
-        assert obs.opponent.hp == opp.hp
-        assert obs.me.deck_count == me.deck_count
-        assert obs.opponent.deck_count == opp.deck_count
+        for view, side in ((obs.me, me), (obs.opponent, opp)):
+            assert view.hp == side.hp
+            assert view.max_hp == side.max_hp
+            assert view.shield == side.shield
+            assert view.energy == side.energy
+            assert view.deck_count == side.deck_count
+            assert view.discard_count == side.discard_count
         assert uids(obs.hand) == uids(me.hand)
         assert obs.round == s.round
 
@@ -55,6 +60,16 @@ def test_opponent_hand_shows_only_colors():
     s = battle()
     assert observe(s, True).opponent_hand == tuple(c.instance.card.colors for c in s.enemy.hand)
     assert observe(s, False).opponent_hand == tuple(c.instance.card.colors for c in s.player.hand)
+
+
+def test_card_backs_of_two_color_card_and_joker():
+    """A two-color card shows both colors, the Joker shows purple."""
+    joker = CardInstance(JOKER, (Tab(Color.RAINBOW, 3),))
+    spark = CardInstance(SPARK, (Tab(Color.GREEN, 2),))
+    enemy_deck = [joker, spark] + [CardInstance(STRIKE, ()) for _ in range(3)]  # 5 cards, all in the start hand
+    s = create_battle(1, mixed_deck(), enemy_deck)
+    backs = observe(s, True).opponent_hand
+    assert sorted(backs) == sorted([(Color.PURPLE,), (Color.RED, Color.BLUE)] + [(Color.RED,)] * 3)
 
 
 def test_deck_lists_have_all_cards():
@@ -117,6 +132,19 @@ def test_observation_is_symmetric():
     assert p.opponent_deck_list == e.deck_list
     assert p.discard == e.opponent_discard
     assert p.opponent_discard == e.discard
+
+
+def test_lists_belong_to_the_right_side():
+    s = battle()
+    for _ in range(2):  # one full round, so both discard piles are not empty
+        s, _ = apply(mid_turn(s), EndTurn())
+    assert s.player.discard and s.enemy.discard
+    for for_player, me, opp in ((True, s.player, s.enemy), (False, s.enemy, s.player)):
+        obs = observe(s, for_player)
+        assert uids(obs.deck_list) == sorted(uids(me.deck + me.hand + me.discard))
+        assert uids(obs.opponent_deck_list) == sorted(uids(opp.deck + opp.hand + opp.discard))
+        assert uids(obs.discard) == sorted(uids(me.discard))
+        assert uids(obs.opponent_discard) == sorted(uids(opp.discard))
 
 
 def snapshot(s):
