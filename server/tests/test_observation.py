@@ -74,12 +74,15 @@ def test_card_backs_of_two_color_card_and_joker():
 
 def test_deck_lists_have_all_cards():
     s = battle()
+    player_uids = sorted(uids(s.player.deck + s.player.hand))
+    enemy_uids = sorted(uids(s.enemy.deck + s.enemy.hand))
+    assert len(player_uids) == len(enemy_uids) == 10
     enemy_mid_turn, _ = apply(s, EndTurn())
-    for state in (s, mid_turn(s), mid_turn(enemy_mid_turn)):
-        for for_player in (True, False):
-            obs = observe(state, for_player)
-            assert len(obs.deck_list) == 10
-            assert len(obs.opponent_deck_list) == 10
+    for state in (s, mid_turn(s), mid_turn(enemy_mid_turn)):  # the last two have a card in the row
+        p = observe(state, True)
+        e = observe(state, False)
+        assert uids(p.deck_list) == uids(e.opponent_deck_list) == player_uids
+        assert uids(e.deck_list) == uids(p.opponent_deck_list) == enemy_uids
 
 
 @given(st.integers(min_value=0, max_value=10_000))
@@ -119,9 +122,26 @@ def test_swapping_same_color_cards_does_not_change_observation():
 
 
 def test_side_without_turn_sees_empty_row():
-    s2 = mid_turn(battle())
-    assert observe(s2, False).row == ()
-    assert len(observe(s2, True).row) == 1
+    player_turn = mid_turn(battle())
+    enemy_turn = mid_turn(apply(battle(), EndTurn())[0])
+    for s, for_player in ((player_turn, True), (enemy_turn, False)):
+        row_uids = [rc.card.uid for rc in s.row]
+        assert len(row_uids) == 1
+        assert uids(observe(s, for_player).row) == row_uids
+        assert observe(s, not for_player).row == ()
+
+
+def test_opponent_played_cards_are_in_discard_on_my_turn():
+    """After ATTACK! the played row goes to the discard pile, so the next side sees it there."""
+    s = battle()
+    for _ in range(2):  # player turn, then enemy turn
+        s = mid_turn(s)
+        played = {rc.card.uid for rc in s.row}
+        mover = s.player_turn
+        s, _ = apply(s, EndTurn())
+        obs = observe(s, not mover)  # the side whose turn it is now
+        assert obs.row == ()
+        assert played <= set(uids(obs.opponent_discard))
 
 
 def test_observation_is_symmetric():
