@@ -22,9 +22,9 @@ def _empty_obs() -> Observation:
         row=(),
         deck_list=(),
         discard=(),
-        opponent_discard=(),
         opponent_hand=(),
         opponent_deck_list=(),
+        opponent_discard=(),
         round=1,
     )
 
