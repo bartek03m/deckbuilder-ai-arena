@@ -14,7 +14,7 @@ from salon.cards import Color, Tab
 
 @dataclass(frozen=True)
 class CardView:
-    """Fully visible card (own hand, row, opponent's deck list)."""
+    """Fully visible card (own hand, row, deck lists, discard piles)."""
 
     uid: int
     def_id: str
