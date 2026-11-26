@@ -19,6 +19,9 @@ public partial class Table : Control
 	// Pause after each event so the player can follow what happens
 	[Export] public float EventDelay { get; set;} = 0.3f;
 
+	//Emitted when the BattleEnded event is played
+	[Signal] public delegate void BattleFinishedEventHandler(int result);
+
 	// PLAYER AND ENEMY STATS
 	private Label _playerHpLabel;
 	private Label _playerShieldLabel;
@@ -132,6 +135,7 @@ public partial class Table : Control
 				break;
 			case ProtoEvent.KindOneofCase.BattleEnded:
 				_battleOver = true;
+				EmitSignal(SignalName.BattleFinished, (int)e.BattleEnded.Result);
 				break;
 		}
 
