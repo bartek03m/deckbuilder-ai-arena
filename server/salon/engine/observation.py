@@ -32,17 +32,23 @@ def _side_view(s: SideState) -> SideView:
     )
 
 
-def _sorted(cards: list[GameCard]) -> tuple[CardView, ...]:
+def _sorted_views(cards: list[GameCard]) -> tuple[CardView, ...]:
     """Sort cards by uid so the order leaks no hidden info, then convert them."""
     by_uid = sorted(cards, key=lambda c: c.uid)
     return tuple(_card_view(c) for c in by_uid)
 
 
 def observe(state: BattleState, for_player: bool) -> Observation:
-    """What one side can see. for_player=True -> player, False -> automaton."""
+    """What one side can see. for_player=True -> player, False -> automaton.
+
+    Built for automata, not for the client view: the row is shown only to the
+    side whose turn it is, while in the game the player also sees the
+    automaton's row.
+    """
     me = state.player if for_player else state.enemy
     opp = state.enemy if for_player else state.player
     my_turn = state.player_turn == for_player
+    # The row always belongs to the side whose turn it is.
     row_cards = [rc.card for rc in state.row]
     my_row = row_cards if my_turn else []
     opp_row = [] if my_turn else row_cards
@@ -51,10 +57,10 @@ def observe(state: BattleState, for_player: bool) -> Observation:
         opponent=_side_view(opp),
         hand=tuple(_card_view(c) for c in me.hand),
         row=tuple(_card_view(c) for c in my_row),
-        deck_list=_sorted(me.deck + me.hand + me.discard + my_row),
-        discard=_sorted(me.discard),
+        deck_list=_sorted_views(me.deck + me.hand + me.discard + my_row),
+        discard=_sorted_views(me.discard),
         opponent_hand=tuple(c.instance.card.colors for c in opp.hand),
-        opponent_deck_list=_sorted(opp.deck + opp.hand + opp.discard + opp_row),
-        opponent_discard=_sorted(opp.discard),
+        opponent_deck_list=_sorted_views(opp.deck + opp.hand + opp.discard + opp_row),
+        opponent_discard=_sorted_views(opp.discard),
         round=state.round,
     )
