@@ -114,7 +114,7 @@ public partial class Table : Control
 			var cardInstance = CardScene.Instantiate<Card>();
 			_enemyHandContainer.AddChild(cardInstance);
 			cardInstance.CustomMinimumSize = new Vector2(117, 162);
-			cardInstance.SetReverse(b);
+			cardInstance.SetCardBack(b);
 		}
 
 		// CARDS ON TABLE

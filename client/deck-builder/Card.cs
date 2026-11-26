@@ -22,7 +22,7 @@ public partial class Card : ColorRect
 
 	// CARD DATA
 	private int _cardUid;
-	private bool _isReverse; // true = enemy card back (shows only colors)
+	private bool _isCardBack; // true = enemy card back (shows only colors)
 	private List<ProtoColor> _currentColors = new();
 
 	// DRAG STATE
@@ -74,7 +74,7 @@ public partial class Card : ColorRect
 
 	public override void _GuiInput(InputEvent @event)
 	{
-		if (_isReverse)
+		if (_isCardBack)
 			return; // ignore all input on card backs
 
 		if (@event is InputEventMouseButton mouseEvent &&
@@ -111,7 +111,7 @@ public partial class Card : ColorRect
 	public void SetCardData(ProtoCard data)
 	{
 		_cardUid   = data.Uid;
-		_isReverse = false;
+		_isCardBack = false;
 
 		// Background color – first color in the list, fallback to neutral
 		_currentColors = data.Colors.ToList();
@@ -130,14 +130,14 @@ public partial class Card : ColorRect
 	}
 
 	/// <summary>
-	/// Show the card as an enemy reverse – only colors visible,
+	/// Show the card as an enemy card back – only colors visible,
 	/// no name / cost / effect / tabs.
 	/// </summary>
 	
-	public void SetReverse(Salon.Proto.CardBack back)
+	public void SetCardBack(Salon.Proto.CardBack back)
 	{
 		_cardUid   = -1;
-		_isReverse = true;
+		_isCardBack = true;
 
 		_currentColors = back.Colors.ToList();
 		Color = Colors.Transparent;
@@ -195,7 +195,7 @@ public partial class Card : ColorRect
 			);
 		}
 
-		if (!_isReverse && _costLabel != null && !string.IsNullOrEmpty(_costLabel.Text))
+		if (!_isCardBack && _costLabel != null && !string.IsNullOrEmpty(_costLabel.Text))
 		{
 			Vector2 orbCenter = new Vector2(20, 18);
 			DrawCircle(orbCenter, 13, new Godot.Color("f1c40f"));
