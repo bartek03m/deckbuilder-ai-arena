@@ -5,18 +5,18 @@ from hypothesis import given, strategies as st
 from salon.cards import CardDef, CardInstance, Color, Tab
 from salon.engine.battle import MAX_HAND, START_HAND, draw_cards, create_battle
 
-CIOS = CardDef("cios", "Cios", (Color.RED,), 1, 5, 0, 0, "starter")
-BLOK = CardDef("blok", "Blok", (Color.GREEN,), 1, 0, 4, 0, "starter")
-NAMYSL = CardDef("namysl", "Namysl", (Color.BLUE,), 1, 0, 0, 2, "starter")
+STRIKE = CardDef("strike", "Strike", (Color.RED,), 1, 5, 0, 0, "starter")
+BLOCK = CardDef("block", "Block", (Color.GREEN,), 1, 0, 4, 0, "starter")
+PONDER = CardDef("ponder", "Ponder", (Color.BLUE,), 1, 0, 0, 2, "starter")
 
 
 def starter_deck():
     return (
-        [CardInstance(CIOS, (Tab(Color.GREEN, 2),))]
-        + [CardInstance(CIOS, ()) for _ in range(3)]
-        + [CardInstance(BLOK, (Tab(Color.RED, 2),))]
-        + [CardInstance(BLOK, ()) for _ in range(3)]
-        + [CardInstance(NAMYSL, (Tab(Color.RED, 1),)), CardInstance(NAMYSL, ())]
+        [CardInstance(STRIKE, (Tab(Color.GREEN, 2),))]
+        + [CardInstance(STRIKE, ()) for _ in range(3)]
+        + [CardInstance(BLOCK, (Tab(Color.RED, 2),))]
+        + [CardInstance(BLOCK, ()) for _ in range(3)]
+        + [CardInstance(PONDER, (Tab(Color.RED, 1),)), CardInstance(PONDER, ())]
     )
 
 

@@ -9,9 +9,9 @@ class Game(rpc.GameServicer):
     def __init__(self):
         self.energy = 3
         self.hand = {
-            0: pb.Card(uid=0, def_id="cios", name="Cios", colors=[pb.COLOR_RED], cost=1, damage=5,
+            0: pb.Card(uid=0, def_id="strike", name="Strike", colors=[pb.COLOR_RED], cost=1, damage=5,
                        tabs=[pb.Tab(color=pb.COLOR_GREEN, value=2)]),
-            1: pb.Card(uid=1, def_id="blok", name="Blok", colors=[pb.COLOR_GREEN], cost=1, shield=4),
+            1: pb.Card(uid=1, def_id="block", name="Block", colors=[pb.COLOR_GREEN], cost=1, shield=4),
         }
         self.row = []
 

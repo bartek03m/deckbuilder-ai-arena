@@ -55,7 +55,7 @@ class PlayCard:
 
 @dataclass(frozen=True)
 class EndTurn:
-    """The "Attack!" button: resolve the row and end the turn."""
+    """The "ATTACK!" button: resolve the row and end the turn."""
 
 
 Action = Union[PlayCard, EndTurn]
