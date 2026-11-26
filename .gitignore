@@ -122,3 +122,4 @@ saves/
 .DS_Store
 Thumbs.db
 desktop.ini
+server/ruff.toml

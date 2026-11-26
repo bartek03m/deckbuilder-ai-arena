@@ -3,6 +3,7 @@
 An automaton gets an Observation (only what its side can see) and the list
 of legal actions, and returns one action. Nothing here imports gRPC code.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -13,7 +14,8 @@ from salon.cards import Color, Tab
 
 @dataclass(frozen=True)
 class CardView:
-    """Fully visible card (own hand, row, opponent's deck list)."""
+    """Fully visible card (own hand, row, deck lists, discard piles)."""
+
     uid: int
     def_id: str
     name: str
@@ -39,18 +41,21 @@ class SideView:
 class Observation:
     me: SideView
     opponent: SideView
-    hand: tuple[CardView, ...]                     # own hand
-    row: tuple[CardView, ...]                      # own row this turn
-    opponent_hand: tuple[tuple[Color, ...], ...]   # opponent card backs: colors only
-    opponent_deck_list: tuple[CardView, ...]       # public opponent deck list
+    hand: tuple[CardView, ...]  # own hand
+    row: tuple[CardView, ...]  # own row this turn, empty on opponent's turn
+    deck_list: tuple[CardView, ...]  # all own cards in this battle sorted by uid
+    discard: tuple[CardView, ...]  # own discarded cards sorted by uid
+    opponent_hand: tuple[tuple[Color, ...], ...]  # opponent card backs: colors only
+    opponent_deck_list: tuple[CardView, ...]  # all opponent cards in this battle sorted by uid
+    opponent_discard: tuple[CardView, ...]  # opponent discarded cards sorted by uid
     round: int
 
 
 @dataclass(frozen=True)
 class PlayCard:
     card_uid: int
-    connect: bool = True             # False = start a new chain, do not connect
-    tab_color: Color | None = None   # when the card matches two tabs
+    connect: bool = True  # False = start a new chain, do not connect
+    tab_color: Color | None = None  # when the card matches two tabs
 
 
 @dataclass(frozen=True)
