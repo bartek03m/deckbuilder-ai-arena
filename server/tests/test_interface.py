@@ -15,7 +15,18 @@ class RandomAutomaton:
 
 def _empty_obs() -> Observation:
     side = SideView(hp=50, max_hp=50, shield=0, energy=3, deck_count=5, discard_count=0)
-    return Observation(me=side, opponent=side, hand=(), row=(), opponent_hand=(), opponent_deck_list=(), round=1)
+    return Observation(
+        me=side,
+        opponent=side,
+        hand=(),
+        row=(),
+        deck_list=(),
+        discard=(),
+        opponent_discard=(),
+        opponent_hand=(),
+        opponent_deck_list=(),
+        round=1,
+    )
 
 
 def test_automaton_returns_legal_action():
