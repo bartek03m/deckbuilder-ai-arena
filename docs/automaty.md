@@ -10,9 +10,14 @@ Każdy automat ma:
 - własne HP, Tarczę (Shield), energię, liczbę kart w talii i na stosie odrzuconych (discard pile),
 - to samo dla przeciwnika,
 - własną rękę i rząd (row) w całości,
+- listę całej własnej talii (`deck_list`),
+- własny stos odrzuconych (discard pile, `discard`),
 - rękę przeciwnika tylko jako kolory rewersów (card back),
-- jawną listę talii przeciwnika,
+- listę całej talii przeciwnika (`opponent_deck_list`),
+- stos odrzuconych przeciwnika (`opponent_discard`),
 - numer rundy.
+
+Listy talii (`deck_list`, `opponent_deck_list`) to wszystkie karty danej strony w tej walce, bez względu na to, gdzie leżą, i nie zmieniają się w trakcie walki. Listy talii i stosy odrzuconych są posortowane po `uid`, więc ich kolejność nic nie zdradza. Ręka i rząd zostają w zwykłej kolejności. Rząd (row) widzi tylko strona, która ma turę. Obserwację buduje `observe(state, for_player)` w `server/salon/engine/observation.py`.
 
 `Action` to `PlayCard(card_uid, connect=True, tab_color=None)` albo `EndTurn()` (przycisk „Atak!” (ATTACK!)).
 
