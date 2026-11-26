@@ -29,7 +29,7 @@ def test_play_card_moves_card_to_row(stub):
     result = stub.PlayCard(pb.PlayCardRequest(session_id=run.session_id, card_uid=0))
     assert len(result.state.row) == 1
     assert len(result.state.hand) == 1
-    assert result.state.player.energy == start_energy - 1   # Cios costs 1
+    assert result.state.player.energy == start_energy - 1   # Strike costs 1
     assert result.events[0].WhichOneof("kind") == "card_played"
 
 
@@ -113,7 +113,7 @@ def test_player_and_automaton_events_do_not_interleave(stub):
 
 
 def test_battle_ended_is_the_last_event():
-    server, port = create_server("127.0.0.1:0", Game(enemy_hp=5))   # one Cios (5 damage) wins
+    server, port = create_server("127.0.0.1:0", Game(enemy_hp=5))   # one Strike (5 damage) wins
     server.start()
     channel = grpc.insecure_channel(f"127.0.0.1:{port}")
     stub = rpc.GameStub(channel)

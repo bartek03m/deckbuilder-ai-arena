@@ -18,7 +18,7 @@ Klient odtwarza `TurnResult.events` po kolei, a na końcu ustawia stół według
 
 `PlayCard`: `CardPlayed` → `TabActivated` (jeśli połączona) → `EnergyChanged`.
 
-`EndTurn` (przycisk „Atak!”):
+`EndTurn` (przycisk „Atak!” (ATTACK!)):
 1. Atak gracza: `Damage` (suma) → `ShieldChanged` → `CardsDrawn`
 2. Koniec tury gracza: `CardsDiscarded`
 3. Tura automatu: `ShieldChanged(0)` (jeśli > 0) → `EnergyChanged` → `CardPlayed`/`TabActivated` na każdą kartę → `Damage` → `ShieldChanged` → `CardsDrawn` → `CardsDiscarded`

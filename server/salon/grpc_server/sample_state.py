@@ -10,15 +10,15 @@ ENEMY_CARD_UID = 100    # the sample automaton's cards get uids 100, 101, ...
 
 def make_hand(first_uid: int = 0) -> dict[int, pb.Card]:
     """Two sample cards with uids first_uid and first_uid + 1, keyed by uid."""
-    cios = pb.Card(uid=first_uid, def_id="cios", name="Cios", colors=[pb.COLOR_RED],
+    strike = pb.Card(uid=first_uid, def_id="strike", name="Strike", colors=[pb.COLOR_RED],
                    cost=1, damage=5, tabs=[pb.Tab(color=pb.COLOR_GREEN, value=2)])
-    blok = pb.Card(uid=first_uid + 1, def_id="blok", name="Blok", colors=[pb.COLOR_GREEN],
+    block = pb.Card(uid=first_uid + 1, def_id="block", name="Block", colors=[pb.COLOR_GREEN],
                    cost=1, shield=4)
-    return {cios.uid: cios, blok.uid: blok}
+    return {strike.uid: strike, block.uid: block}
 
 
 def make_enemy_card(uid: int) -> pb.Card:
-    return pb.Card(uid=uid, def_id="cios", name="Cios", colors=[pb.COLOR_RED],
+    return pb.Card(uid=uid, def_id="strike", name="Strike", colors=[pb.COLOR_RED],
                    cost=1, damage=ENEMY_DAMAGE)
 
 

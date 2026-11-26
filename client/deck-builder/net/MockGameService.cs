@@ -92,7 +92,7 @@ public sealed class MockGameService : IGameService
 		result.Events.Add(new Event { EnergyChanged = new EnergyChanged { Player = false, Value = 3 } });
 		var enemyCard = new ProtoCard
 		{
-			Uid = _nextUid++, DefId = "cios", Name = "Cios", Colors = { ProtoColor.Red }, Cost = 1, Damage = damageToPlayer,
+			Uid = _nextUid++, DefId = "strike", Name = "Strike", Colors = { ProtoColor.Red }, Cost = 1, Damage = damageToPlayer,
 		};
 		result.Events.Add(new Event { CardPlayed = new CardPlayed { ByPlayer = false, Card = enemyCard } });
 		_playerHp = Math.Max(0, _playerHp - damageToPlayer);
@@ -128,17 +128,17 @@ public sealed class MockGameService : IGameService
 		_hand.Clear();
 		_hand.Add(new ProtoCard
 		{
-			Uid = _nextUid++, DefId = "cios", Name = "Cios", Colors = { ProtoColor.Red },
+			Uid = _nextUid++, DefId = "strike", Name = "Strike", Colors = { ProtoColor.Red },
 			Cost = 1, Damage = 5, Tabs = { new Tab { Color = ProtoColor.Green, Value = 2 } },
 		});
 		_hand.Add(new ProtoCard
 		{
-			Uid = _nextUid++, DefId = "blok", Name = "Blok", Colors = { ProtoColor.Green },
+			Uid = _nextUid++, DefId = "block", Name = "Block", Colors = { ProtoColor.Green },
 			Cost = 1, Shield = 4,
 		});
 		_hand.Add(new ProtoCard
 		{
-			Uid = _nextUid++, DefId = "namysl", Name = "Namysł", Colors = { ProtoColor.Blue },
+			Uid = _nextUid++, DefId = "ponder", Name = "Ponder", Colors = { ProtoColor.Blue },
 			Cost = 1, Draw = 2, Tabs = { new Tab { Color = ProtoColor.Red, Value = 1 } },
 		});
 	}

@@ -7,14 +7,14 @@ Każdy automat ma:
 - `choose_action(obs: Observation, legal: list[Action]) -> Action`
 
 `Observation` zawiera tylko to, co widzi dana strona:
-- własne HP, Tarczę, energię, liczbę kart w talii i na stosie odrzuconych,
+- własne HP, Tarczę (Shield), energię, liczbę kart w talii i na stosie odrzuconych (discard pile),
 - to samo dla przeciwnika,
-- własną rękę i rząd w całości,
-- rękę przeciwnika tylko jako kolory rewersów,
+- własną rękę i rząd (row) w całości,
+- rękę przeciwnika tylko jako kolory rewersów (card back),
 - jawną listę talii przeciwnika,
 - numer rundy.
 
-`Action` to `PlayCard(card_uid, connect=True, tab_color=None)` albo `EndTurn()` (przycisk „Atak!”).
+`Action` to `PlayCard(card_uid, connect=True, tab_color=None)` albo `EndTurn()` (przycisk „Atak!” (ATTACK!)).
 
 Zasady:
 1. Automat zwraca ruch z listy `legal`. Dozwolone ruchy liczy silnik, nie automat.
