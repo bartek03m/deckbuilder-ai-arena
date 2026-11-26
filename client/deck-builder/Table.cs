@@ -1,15 +1,26 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Godot;
 using Salon.Proto;
 using ProtoCard = Salon.Proto.Card;
 using ProtoSide = Salon.Proto.Side;
-
+using Grpc.Core;
+using ProtoEvent = Salon.Proto.Event;
 public partial class Table : Control
 {
 	// CARD SCENE
 	[Export] public PackedScene CardScene { get; set; }
+	// SERVER
+	[Export] public bool UseMock {  get; set; } = true;
+	[Export] public string ServerAddress { get; set; } = "http://127.0.0.1:50051";
+
+	// Pause after each event so the player can follow what happens
+	[Export] public float EventDelay { get; set;} = 0.3f;
+
+	//Emitted when the BattleEnded event is played
+	[Signal] public delegate void BattleFinishedEventHandler(int result);
 
 	// PLAYER AND ENEMY STATS
 	private Label _playerHpLabel;
@@ -37,6 +48,15 @@ public partial class Table : Control
 	private Label _shieldPreviewLabel;
 	private Label _drawPreviewLabel;
 
+	// SESSION
+	private IGameService _service;
+	private string _sessionId = "";
+	private EventQueue _events;
+	private bool _battleOver;
+
+	public bool IsBusy => _events?.IsBusy ?? false;
+	public bool IsBattleOver => _battleOver;
+
 	// _Ready 
 	public override async void _Ready()
 	{
@@ -60,19 +80,117 @@ public partial class Table : Control
 		_enemyHandContainer  = GetNode<HBoxContainer>("TopBar/EnemyHand");
 		_rowContainer        = GetNode<HBoxContainer>("MiddleArea/RowContainer");
 
-		// MOCK SERVICE
-		var mockService = new MockGameService();
-		var run = await mockService.StartRunAsync(42);
-		UpdateState(run.Battle);
+		_events = new EventQueue(PlayEventAsync, UpdateState);
+
+		// SERVICE: mock (no Python) or real gRPC server
+		_service = UseMock ? new MockGameService() : new GrpcGameService(ServerAddress);
+		try
+		{
+			var run = await _service.StartRunAsync(42);
+			_sessionId = run.SessionId;
+			UpdateState(run.Battle);
+		}
+		catch (RpcException ex)
+		{
+			GD.PushError($"StartRun failed: {ex.StatusCode} {ex.Status.Detail}");
+		}
 	}
+
+	public override void _ExitTree()
+	{
+		_service?.Dispose();
+		_service = null;
+	}
+
+	public Task ShowTurnResultAsync(TurnResult result) => _events.EnqueueAsync(result);
 
 	// UPDATE STATE
 	public void UpdateState(BattleState state)
 	{
 		if (state == null) return;
 
+		_battleOver = state.Result != BattleResult.Ongoing;
 		UpdateStats(state);
 		UpdateCards(state);
+	}
+
+	// PLAY ONE EVENT
+	private async Task PlayEventAsync(ProtoEvent e)
+	{
+		GD.Print($"[event] {e}");
+
+		switch (e.KindCase)
+		{
+			case ProtoEvent.KindOneofCase.CardPlayed:
+				OnCardPlayed(e.CardPlayed);
+				break;
+			case ProtoEvent.KindOneofCase.ShieldChanged:
+				SetShieldLabel(e.ShieldChanged.Player, e.ShieldChanged.Value);
+				break;
+			case ProtoEvent.KindOneofCase.EnergyChanged:
+				SetEnergyLabel(e.EnergyChanged.Player, e.EnergyChanged.Value);
+				break;
+			case ProtoEvent.KindOneofCase.CardsDiscarded:
+				RemoveFromRow(e.CardsDiscarded.CardUids);
+				break;
+			case ProtoEvent.KindOneofCase.BattleEnded:
+				_battleOver = true;
+				EmitSignal(SignalName.BattleFinished, (int)e.BattleEnded.Result);
+				break;
+		}
+
+		if (EventDelay > 0)
+			await ToSignal(GetTree().CreateTimer(EventDelay), SceneTreeTimer.SignalName.Timeout);
+	}
+	private void OnCardPlayed(CardPlayed played)
+	{
+		if (played.Card == null) return;
+
+		if (played.ByPlayer)
+		{
+			var inHand = FindCard(_playerHandContainer, played.Card.Uid);
+			if (inHand != null)
+				RemoveCardNode(_playerHandContainer, inHand);
+		}
+		else if (_enemyHandContainer.GetChildCount() > 0)
+		{
+			RemoveCardNode(_enemyHandContainer, _enemyHandContainer.GetChild(0));
+		}
+
+		var cardInstance = CardScene.Instantiate<Card>();
+		_rowContainer.AddChild(cardInstance);
+		cardInstance.SetCardData(played.Card);
+	}
+
+	private void RemoveFromRow(IEnumerable<int> cardUids)
+	{
+		foreach (var uid in cardUids)
+		{
+			var card = FindCard(_rowContainer, uid);
+			if (card != null)
+				RemoveCardNode(_rowContainer, card);
+		}
+	}
+
+	private void SetShieldLabel(bool player, int value)
+	{
+		var label = player ? _playerShieldLabel : _enemyShieldLabel;
+		label.Text = $"Shield: {value}";
+	}
+
+	private void SetEnergyLabel(bool player, int value)
+	{
+		var label = player ? _playerEnergyLabel : _enemyEnergyLabel;
+		label.Text = $"Energy: {value}";
+	}
+
+	private static Card FindCard(Node container, int uid) =>
+		container.GetChildren().OfType<Card>().FirstOrDefault(c => c.CardUid == uid);
+	
+	private static void RemoveCardNode(Node container, Node card)
+	{
+		container.RemoveChild(card);
+		card.QueueFree();
 	}
 
 	private void UpdateStats(BattleState state)
@@ -128,7 +246,7 @@ public partial class Table : Control
 	private void ClearContainer(Node container) {
 		foreach (Node card in container.GetChildren()) 
 		{
-			card.QueueFree();
+			RemoveCardNode(container, card);
 		}
 	}
 }
