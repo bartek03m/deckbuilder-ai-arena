@@ -5,11 +5,14 @@ using Godot;
 using Salon.Proto;
 using ProtoCard = Salon.Proto.Card;
 using ProtoSide = Salon.Proto.Side;
-
+using Grpc.Core;
 public partial class Table : Control
 {
 	// CARD SCENE
 	[Export] public PackedScene CardScene { get; set; }
+	// SERVER
+	[Export] public bool UseMock {  get; set; } = true;
+	[Export] public string ServerAddress { get; set; } = "http://125.0.0.1:50051";
 
 	// PLAYER AND ENEMY STATS
 	private Label _playerHpLabel;
@@ -37,6 +40,13 @@ public partial class Table : Control
 	private Label _shieldPreviewLabel;
 	private Label _drawPreviewLabel;
 
+	// SESSION
+	private IGameService _service;
+	private string _sessionId = "";
+	private bool _battleOver;
+
+	public bool IsBattleOver => _battleOver;
+
 	// _Ready 
 	public override async void _Ready()
 	{
@@ -60,17 +70,32 @@ public partial class Table : Control
 		_enemyHandContainer  = GetNode<HBoxContainer>("TopBar/EnemyHand");
 		_rowContainer        = GetNode<HBoxContainer>("MiddleArea/RowContainer");
 
-		// MOCK SERVICE
-		var mockService = new MockGameService();
-		var run = await mockService.StartRunAsync(42);
-		UpdateState(run.Battle);
+		// SERVICE: mock (no Python) or real gRPC server
+		_service = UseMock ? new MockGameService() : new GrpcGameService(ServerAddress);
+		try
+		{
+			var run = await _service.StartRunAsync(42);
+			_sessionId = run.SessionId;
+			UpdateState(run.Battle);
+		}
+		catch (RpcException ex)
+		{
+			GD.PushError($"StartRun failed: {ex.StatusCode} {ex.Status.Detail}");
+		}
 	}
+
+    public override void _ExitTree()
+    {
+        _service?.Dispose();
+		_service = null;
+    }
 
 	// UPDATE STATE
 	public void UpdateState(BattleState state)
 	{
 		if (state == null) return;
 
+		_battleOver = state.Result != BattleResult.Ongoing;
 		UpdateStats(state);
 		UpdateCards(state);
 	}
