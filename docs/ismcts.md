@@ -69,7 +69,7 @@ UCT = W/N + c · √(ln dost. / N)
 ### Co daje `Observation` (S2-07, DAA-89)
 - **Stos odrzuconych (discard pile) przeciwnika** (`opponent_discard`): determinizacja losuje jego rękę i talię tylko spośród kart z `opponent_deck_list`, których nie ma na tym stosie.
 - **Własna talia i własny stos odrzuconych** (`deck_list`, `discard`): to, co sami możemy dobrać, to `deck_list` bez ręki, rzędu (row) i `discard`.
-- **Rząd przeciwnika jest ukryty, dopóki ten nie kliknie „Atak!” (ATTACK!).** Potem jego karty leżą na stosie odrzuconych. Lustro (Mirror) decyduje tylko w swojej turze, a wtedy rząd przeciwnika jest pusty, więc to mu nie przeszkadza.
+- **Rząd (row) przeciwnika:** w `Observation` rząd ma tylko strona, która ma turę. Lustro (Mirror) decyduje tylko w swojej turze, a karty zagrane przez przeciwnika leżą wtedy już na jego stosie odrzuconych (`opponent_discard`), więc niczego mu nie brakuje. Nie widać tylko kolejności zagrania i aktywowanych wypustek, bo stos jest posortowany po `uid` (model gracza bierze to z logów walk). To nie jest zasada gry: w grze gracz widzi rząd automatu (F46).
 
 ### Prototyp z DAA-77
 - Ogólny MCTS za protokołem `GameState` (`legal_moves` / `play` / `is_terminal` / `reward` / `player_to_move`), sprawdzony na kółku i krzyżyku. Silnik Salonu będzie miał funkcje `legal_actions` / `apply`, więc w S4-08 wystarczy cienki adapter.

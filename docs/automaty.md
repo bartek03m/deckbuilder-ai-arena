@@ -17,7 +17,7 @@ Każdy automat ma:
 - stos odrzuconych przeciwnika (`opponent_discard`),
 - numer rundy.
 
-Listy talii (`deck_list`, `opponent_deck_list`) to wszystkie karty danej strony w tej walce, bez względu na to, gdzie leżą, i nie zmieniają się w trakcie walki. Listy talii i stosy odrzuconych są posortowane po `uid`, więc ich kolejność nic nie zdradza. Ręka i rząd zostają w zwykłej kolejności. Rząd (row) widzi tylko strona, która ma turę. Obserwację buduje `observe(state, for_player)` w `server/salon/engine/observation.py`.
+Listy talii (`deck_list`, `opponent_deck_list`) to wszystkie karty danej strony w tej walce, bez względu na to, gdzie leżą, i nie zmieniają się w trakcie walki. Listy talii i stosy odrzuconych są posortowane po `uid`, więc ich kolejność nic nie zdradza. Ręka i rząd zostają w zwykłej kolejności. Rząd (row) jest w `Observation` tylko u strony, która ma turę. Karty zagrane przez przeciwnika automat widzi w swojej turze w `opponent_discard`, bo po „Atak!” (ATTACK!) trafiają na stos odrzuconych. To uproszczenie samej `Observation`, a nie zasada gry: w grze gracz widzi rząd automatu (F46), więc widoku dla klienta nie budujemy z `observe`. Obserwację buduje `observe(state, for_player)` w `server/salon/engine/observation.py`.
 
 `Action` to `PlayCard(card_uid, connect=True, tab_color=None)` albo `EndTurn()` (przycisk „Atak!” (ATTACK!)).
 
