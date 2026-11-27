@@ -185,3 +185,39 @@ def test_battle_ended_is_the_last_event(stub, game):
     with pytest.raises(grpc.RpcError) as err:  # nothing is allowed after the end
         _end_turn(stub, run)
     assert err.value.code() == grpc.StatusCode.FAILED_PRECONDITION
+
+MAX_CALLS = 500
+
+
+def _play_whole_battle(stub, seed):
+    """Play a battle to the end: the player always plays the first affordable card,
+    and ends the turn when none is left. Returns the final state and all events."""
+    run = _start(stub, seed)
+    state = run.battle
+    events = []
+    for _ in range(MAX_CALLS):
+        if state.result != pb.BATTLE_RESULT_ONGOING:
+            break
+        playable = [c for c in state.hand if c.cost <= state.player.energy]
+        result = _play(stub, run, playable[0].uid) if playable else _end_turn(stub, run)
+        events += result.events
+        state = result.state
+    return state, events
+
+
+@pytest.mark.parametrize("seed", [1, 2, 3])
+def test_full_battle_through_grpc(stub, seed):
+    state, events = _play_whole_battle(stub, seed)
+
+    assert state.result != pb.BATTLE_RESULT_ONGOING
+    assert events[-1].WhichOneof("kind") == "battle_ended"
+    assert events[-1].battle_ended.result == state.result
+    assert [e.WhichOneof("kind") for e in events].count("battle_ended") == 1
+    loser = state.player if state.result == pb.BATTLE_RESULT_LOST else state.enemy
+    assert loser.hp == 0
+
+
+def test_same_seed_same_battle_through_grpc(stub):
+    first = _play_whole_battle(stub, seed=5)
+    second = _play_whole_battle(stub, seed=5)
+    assert first == second
