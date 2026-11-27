@@ -89,6 +89,7 @@ public partial class Table : Control
 		_rowContainer        = GetNode<HBoxContainer>("MiddleArea/RowContainer");
 
 		_events = new EventQueue(PlayEventAsync, UpdateState);
+		_events.Idle += RefreshInput;
 
 		// SERVICE: mock (no Python) or real gRPC server
 		_service = UseMock ? new MockGameService() : new GrpcGameService(ServerAddress);
@@ -147,6 +148,7 @@ public partial class Table : Control
 			return false;
 
 		_requestPending = true;
+		RefreshInput();
 		try
 		{
 			var result = await request();
@@ -161,11 +163,21 @@ public partial class Table : Control
 		finally
 		{
 			_requestPending = false;
+			RefreshInput();
 		}
 	}
 
 	// A dragged card stays where it was dropped; sorting puts every card back to its place in a row.
 	private void ReturnCardsToHand() => _playerHandContainer.QueueSort();
+
+	// locks or unlocks the attack button and the cards in hadn
+	private void RefreshInput()
+	{
+		bool canAct = CanAct;
+		_attackButton.Disabled = !canAct;
+		foreach(var card in _playerHandContainer.GetChildren().OfType<Card>())
+			card.MouseFilter = canAct ? MouseFilterEnum.Stop : MouseFilterEnum.Ignore;
+	}
 
 	// UPDATE STATE
 	public void UpdateState(BattleState state)
@@ -175,6 +187,7 @@ public partial class Table : Control
 		_battleOver = state.Result != BattleResult.Ongoing;
 		UpdateStats(state);
 		UpdateCards(state);
+		RefreshInput();
 	}
 
 	// PLAY ONE EVENT
