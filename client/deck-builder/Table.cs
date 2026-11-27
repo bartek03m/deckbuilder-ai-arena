@@ -82,6 +82,7 @@ public partial class Table : Control
 		_deckPileButton      = GetNode<Button>("MiddleArea/DeckPile");
 		_discardPileButton   = GetNode<Button>("MiddleArea/DiscardPile");
 		_attackButton        = GetNode<Button>("MiddleArea/AttackButton");
+		_attackButton.Pressed += OnAttackPressed;
 
 		_playerHandContainer = GetNode<HBoxContainer>("BottomBar/PlayerHand");
 		_enemyHandContainer  = GetNode<HBoxContainer>("TopBar/EnemyHand");
@@ -136,6 +137,9 @@ public partial class Table : Control
 		if (!played)
 			ReturnCardsToHand();
 	}
+
+	// Attack. the server resolver the row and plays automaton turn (EndTurn).
+	private async void OnAttackPressed() => await RunRequestAsync(() => _service.EndTurnAsync(_sessionId));
 
 	private async Task<bool> RunRequestAsync(Func<Task<TurnResult>> request)
 	{
