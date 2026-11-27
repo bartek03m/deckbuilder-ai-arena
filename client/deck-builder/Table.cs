@@ -57,6 +57,13 @@ public partial class Table : Control
 	public bool IsBusy => _events?.IsBusy ?? false;
 	public bool IsBattleOver => _battleOver;
 
+	//Input
+	//True from sending a request until its response has been played
+	private bool _requestPending;
+
+	//Player can act only when no request is waiting
+	private bool CanAct => !_requestPending && !IsBusy && !_battleOver;
+
 	// _Ready 
 	public override async void _Ready()
 	{
@@ -103,6 +110,58 @@ public partial class Table : Control
 	}
 
 	public Task ShowTurnResultAsync(TurnResult result) => _events.EnqueueAsync(result);
+
+	// Player input
+	// drop on the last card in the row = connect it; drop anywhere else on the row = start a new chain
+	//click = play without a connection
+	private async void OnHandCardClicked(int cardUid) => await TryPlayCardAsync(cardUid, false);
+
+	private async void OnHandCardDropped(int cardUid, Vector2 globalPosition)
+	{
+		var mouse = GetGlobalMousePosition();
+		if (!_rowContainer.GetGlobalRect().HasPoint(mouse))
+		{
+			ReturnCardsToHand();
+			return;
+		}
+
+		var lastInRow = _rowContainer.GetChildren().OfType<Card>().LastOrDefault();
+		bool connect = lastInRow != null && lastInRow.GetGlobalRect().HasPoint(mouse);
+		await TryPlayCardAsync(cardUid, connect);
+	}
+
+	private async Task TryPlayCardAsync(int cardUid, bool connect)
+	{
+		bool played = await RunRequestAsync(() => _service.PlayCardAsync(_sessionId, cardUid, connect));
+		if (!played)
+			ReturnCardsToHand();
+	}
+
+	private async Task<bool> RunRequestAsync(Func<Task<TurnResult>> request)
+	{
+		if (!CanAct)
+			return false;
+
+		_requestPending = true;
+		try
+		{
+			var result = await request();
+			await ShowTurnResultAsync(result);
+			return true;
+		}
+		catch (RpcException ex)
+		{
+			GD.PushWarning($"Server rejected the move: {ex.StatusCode} {ex.Status.Detail}");
+			return false;
+		}
+		finally
+		{
+			_requestPending = false;
+		}
+	}
+
+	// A dragged card stays where it was dropped; sorting puts every card back to its place in a row.
+	private void ReturnCardsToHand() => _playerHandContainer.QueueSort();
 
 	// UPDATE STATE
 	public void UpdateState(BattleState state)
@@ -157,9 +216,16 @@ public partial class Table : Control
 			RemoveCardNode(_enemyHandContainer, _enemyHandContainer.GetChild(0));
 		}
 
+		AddRowCard(played.Card);
+	}
+
+	//Cards in the row only show what was played, ignore the mouse (later changed when undo comes probably...)
+	private void AddRowCard(ProtoCard data)
+	{
 		var cardInstance = CardScene.Instantiate<Card>();
 		_rowContainer.AddChild(cardInstance);
-		cardInstance.SetCardData(played.Card);
+		cardInstance.SetCardData(data);
+		cardInstance.MouseFilter = MouseFilterEnum.Ignore;
 	}
 
 	private void RemoveFromRow(IEnumerable<int> cardUids)
@@ -225,6 +291,8 @@ public partial class Table : Control
 			_playerHandContainer.AddChild(cardInstance);
 			cardInstance.SetCardData(c);
 			cardInstance.SizeFlagsVertical = SizeFlags.ShrinkEnd;
+			cardInstance.CardClicked += OnHandCardClicked;
+			cardInstance.CardDropped += OnHandCardDropped;
 		}
 
 		// ENEMY HAND
@@ -236,10 +304,9 @@ public partial class Table : Control
 		}
 
 		// CARDS ON TABLE
-		foreach (var c in state.Row) {
-			var cardInstance = CardScene.Instantiate<Card>();
-			_rowContainer.AddChild(cardInstance);
-			cardInstance.SetCardData(c);
+		foreach (var c in state.Row)
+		{
+			AddRowCard(c);
 		}
 	}
 
