@@ -50,15 +50,16 @@ public sealed class MockGameService : IGameService
 		if (card.Cost > _energy)
 			return Fail<TurnResult>(StatusCode.FailedPrecondition, "not enough available energy");
 
+		var previous = _row.LastOrDefault();
 		_hand.Remove(card);
 		_row.Add(card);
 		_energy -= card.Cost;
 
 		var result = new TurnResult();
 		result.Events.Add(new Event { CardPlayed = new CardPlayed { ByPlayer = true, Card = card } });
-		foreach (var tab in card.Tabs) // sample event so the UI has something to show
-			result.Events.Add(new Event { TabActivated = new TabActivated { CardUid = card.Uid, Tab = tab } });
-			result.Events.Add(new Event { EnergyChanged = new EnergyChanged { Player = true, Value = _energy } });
+		if (connect && previous != null && previous.Tabs.Count > 0)
+			result.Events.Add(new Event { TabActivated = new TabActivated { CardUid = previous.Uid, Tab = previous.Tabs[0] } });
+		result.Events.Add(new Event { EnergyChanged = new EnergyChanged { Player = true, Value = _energy } });
 		result.State = BuildState();
 		return Task.FromResult(result);
 	}
