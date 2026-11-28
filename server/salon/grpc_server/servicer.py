@@ -1,156 +1,108 @@
+"""gRPC service: one battle session played on the rules engine against Cog."""
+
 import uuid
 import grpc
 
 from salon_proto import game_pb2 as pb
 from salon_proto import game_pb2_grpc as rpc
-from salon.grpc_server import sample_state
 
-# small helpers so the code below stays readable
-def _card_played(by_player, card):
-    return pb.Event(card_played=pb.CardPlayed(by_player=by_player, card=card))
+from salon.automata.cog import Cog
+from salon.automata.interface import EndTurn, PlayCard
+from salon.cards import load_deck
+from salon.engine.apply import apply
+from salon.engine.battle import create_battle
+from salon.engine.observation import observe
+from salon.engine.rules import legal_actions
+from salon.engine.state import BattleResult
+from salon.grpc_server import convert
 
-def _tab_activated(card_uid, tab):
-    return pb.Event(tab_activated=pb.TabActivated(card_uid=card_uid, tab=tab))
+PLAYER_DECK = "starter"
+ENEMY_DECK = "starter"
+MAX_AUTOMATON_STEPS = 100 # just for safety, one automaton turn never needs this many actions
 
-def _damage(to_player, amount, absorbed=0):
-    return pb.Event(damage=pb.Damage(to_player=to_player, amount=amount, absorbed=absorbed))
-
-def _shield_changed(player, value):
-    return pb.Event(shield_changed=pb.ShieldChanged(player=player, value=value))
-
-def _cards_drawn(player, count):
-    return pb.Event(cards_drawn=pb.CardsDrawn(player=player, count=count))
-
-def _energy_changed(player, value):
-    return pb.Event(energy_changed=pb.EnergyChanged(player=player, value=value))
-
-def _cards_discarded(player, card_uids):
-    return pb.Event(cards_discarded=pb.CardsDiscarded(player=player, card_uids=card_uids))
 
 class Game(rpc.GameServicer):
 
-    def __init__(self, player_hp=sample_state.PLAYER_HP, enemy_hp=sample_state.ENEMY_HP):
+    def __init__(self, player_hp=50, enemy_hp=30):
         self.session_id = str(uuid.uuid4())
-        self.start_player_hp = player_hp    # default values are in sample_state
-        self.start_enemy_hp = enemy_hp
-        self._reset()
-
-    def _reset(self):
-        self.energy = sample_state.START_ENERGY
-        self.hand = sample_state.make_hand()
-        self.next_uid = 2   # 2 because make_hand makes 2 cards at once right now in sample_state (its temporary)
-        self.row = []
-        self.round_no = 1
-        self.player_hp = self.start_player_hp
-        self.enemy_hp = self.start_enemy_hp
-        self.player_shield = 0                         
-        self.result = pb.BATTLE_RESULT_ONGOING
+        self.player_hp = player_hp
+        self.enemy_hp = enemy_hp
+        self.state = None # BattleState, created in StartRun below
+        self.bot = None # the automaton, created in StartRun below
 
     def _state(self):
-        return sample_state.build_state(self.hand, self.row, self.energy, self.round_no,
-        player_hp=self.player_hp, player_shield=self.player_shield,
-        enemy_hp=self.enemy_hp, result=self.result)
+        return convert.state_to_proto(self.state)
 
+    def _turn_result(self, events):
+        return pb.TurnResult(events=convert.events_to_proto(events), state=self._state())
+    
     def _check_session(self, request, context):
         if request.session_id != self.session_id:
             context.abort(grpc.StatusCode.NOT_FOUND, "session id does not match")
 
+    def _check_started(self, context):
+        if self.state is None:
+            context.abort(grpc.StatusCode.FAILED_PRECONDITION, "call StartRun first")
+
     def _check_ongoing(self, context):
-        if self.result != pb.BATTLE_RESULT_ONGOING:
+        if self.state.result != BattleResult.ONGOING:
             context.abort(grpc.StatusCode.FAILED_PRECONDITION, "battle is over")
 
-    def _end_battle(self, result, events):
-        self.result = result
-        events.append(pb.Event(battle_ended=pb.BattleEnded(result=result)))
-        return pb.TurnResult(events=events, state=self._state())
+    def _find_play(self, card_uid, connect, tab_color):
+        """Match the client's request to exactly one legal PlayCard action, or None.
 
-    def _draw_cards(self):
-        new = sample_state.make_hand(self.next_uid)
-        self.next_uid += len(new)
-        self.hand.update(new)
-        return list(new.values())
+        When only one tab matches, the engine expects tab_color=None,
+        so a color sent by the client is accepted then as well.
+        """
+        plays = [a for a in legal_actions(self.state)
+                 if isinstance(a, PlayCard) and a.card_uid == card_uid and a.connect == connect]
+        if tab_color is not None:
+            plays = [a for a in plays if a.tab_color in (tab_color, None)]
+        return plays[0] if len(plays) == 1 else None
+            
+    def _automaton_turn(self):
+        """Let the automaton play until it is the player's turn again or the battle ends."""
+        events = []
+        for _ in range(MAX_AUTOMATON_STEPS):
+            if self.state.result != BattleResult.ONGOING or self.state.player_turn:
+                return events
+            obs = observe(self.state, for_player=False)
+            action = self.bot.choose_action(obs, legal_actions(self.state))
+            self.state, new_events = apply(self.state, action)
+            events += new_events
+        raise RuntimeError("automaton turn did not end")
 
     def StartRun(self, request, context):
-        self._reset()
+        self.state = create_battle(
+            request.seed, load_deck(PLAYER_DECK), load_deck(ENEMY_DECK),
+            player_hp=self.player_hp, enemy_hp=self.enemy_hp)
+        self.bot = Cog(request.seed)
         return pb.RunState(session_id=self.session_id, battle=self._state())
     
     def PlayCard(self, request, context):
-        #validation
         self._check_session(request, context)
+        self._check_started(context)
         self._check_ongoing(context)
 
-        if request.card_uid not in self.hand:
+        if all(card.uid != request.card_uid for card in self.state.player.hand):
             context.abort(grpc.StatusCode.INVALID_ARGUMENT, "no such card in hand")
-        
-        card = self.hand[request.card_uid]
-        if card.cost > self.energy:
-            context.abort(grpc.StatusCode.FAILED_PRECONDITION, "not enough available energy")
+        try:
+            tab_color = convert.color_from_proto(request.tab_color)
+        except ValueError as err:
+            context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(err))
 
-        if self.row:    # to remember the last card played
-            previous = self.row[-1]
-        else:
-            previous = None
+        action = self._find_play(request.card_uid, request.connect, tab_color)
+        if action is None:
+            context.abort(grpc.StatusCode.FAILED_PRECONDITION, "this card cannot be played like that now")
 
-        del self.hand[request.card_uid]
-        self.energy -= card.cost
-        self.row.append(card)
-
-        events = [_card_played(True, card)]
-        if request.connect and previous is not None and previous.tabs:
-            events.append(_tab_activated(previous.uid, previous.tabs[0])) # TODO: you need to check which tab is the one activated its not always 0
-        events.append(_energy_changed(True, self.energy)) # new amount of energy after played card
-
-        return pb.TurnResult(events=events, state=self._state())
+        self.state, events = apply(self.state, action)
+        return self._turn_result(events)
 
     def EndTurn(self, request, context):
         self._check_session(request, context)
+        self._check_started(context)
         self._check_ongoing(context)
-        events = []
 
-        damage = sum(card.damage for card in self.row)
-        shield = sum(card.shield for card in self.row)
-
-        # TODO: 1. start counting tabs into damage and shield after first round for player
-        # TODO: 2. include enemy shield in damage calculations
-        
-        if damage > 0:
-            self.enemy_hp = max(0, self.enemy_hp - damage)
-            events.append(_damage(False, damage))
-            if self.enemy_hp == 0:
-                return self._end_battle(pb.BATTLE_RESULT_WON, events)
-        if shield > 0:
-            self.player_shield += shield
-            events.append(_shield_changed(True, self.player_shield))
-
-        drawn = self._draw_cards()
-        events.append(_cards_drawn(True, len(drawn)))
-
-        discarded = [card.uid for card in self.row]
-        self.row = []
-        if discarded:
-            events.append(_cards_discarded(True, discarded))
-
-        # bot turn -> player == false
-        events.append(_energy_changed(False, sample_state.TURN_ENERGY))
-        enemy_card = sample_state.make_enemy_card(sample_state.ENEMY_CARD_UID + self.round_no)
-        events.append(_card_played(False, enemy_card))
-
-        absorbed = min(self.player_shield, enemy_card.damage)
-        self.player_hp = max(0, self.player_hp - (enemy_card.damage - absorbed))
-        events.append(_damage(True, enemy_card.damage, absorbed))
-        if self.player_hp == 0:
-            return self._end_battle(pb.BATTLE_RESULT_LOST, events)
-
-        events.append(_cards_drawn(False, 1))
-        events.append(_cards_discarded(False, [enemy_card.uid]))
-
-        self.round_no += 1
-        
-        if self.player_shield > 0:
-            self.player_shield = 0
-            events.append(_shield_changed(True, self.player_shield))
-
-        self.energy = sample_state.TURN_ENERGY
-        events.append(_energy_changed(True, self.energy))
-
-        return pb.TurnResult(events=events, state=self._state())
+        self.state, events = apply(self.state, EndTurn())
+        events += self._automaton_turn()
+        return self._turn_result(events)
